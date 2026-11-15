@@ -1,0 +1,110 @@
+[
+ {
+  "id": "seed-colruyt-wemmel",
+  "stationId": "colruyt-wemmel",
+  "ts": "2026-10-29",
+  "result": "OK",
+  "otherCar": null,
+  "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-presbytere-wemmel",
+  "stationId": "presbytere-wemmel",
+  "ts": "2026-10-29",
+  "result": "OK",
+  "otherCar": null,
+  "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-ra32-wemmel",
+  "stationId": "ra32-wemmel",
+  "ts": "2026-10-29",
+  "result": "OK",
+  "otherCar": null,
+  "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-ra9-wemmel",
+  "stationId": "ra9-wemmel",
+  "ts": "2026-10-29",
+  "result": "OK",
+  "otherCar": null,
+  "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-blink-etangs",
+  "stationId": "blink-etangs",
+  "ts": "2026-10-29",
+  "result": "OK",
+  "otherCar": null,
+  "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-vanermengem-jette",
+  "stationId": "vanermengem-jette",
+  "ts": "2026-10-29",
+  "result": "REFUS",
+  "otherCar": true,
+  "note": "Date d'essai non renseignée (saisie le 29/10/2026) ; Voyant orange puis coupure après quelques secondes",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-ra182-wemmel",
+  "stationId": "ra182-wemmel",
+  "ts": "2026-10-29",
+  "result": "REFUS",
+  "otherCar": null,
+  "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-herne-geeststraat",
+  "stationId": "herne-geeststraat",
+  "ts": "2026-10-29",
+  "result": "OK",
+  "otherCar": null,
+  "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-ezcharge-enghien",
+  "stationId": "ezcharge-enghien",
+  "ts": "2026-10-30",
+  "result": "REFUS",
+  "otherCar": true,
+  "note": "",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-herne-2025",
+  "stationId": "herne-geeststraat",
+  "ts": "2025-10-26",
+  "result": "OK",
+  "otherCar": null,
+  "note": "44 % à l'arrivée, 6 °C, 9,3 kW",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-cofabel-herne",
+  "stationId": "cofabel-herne",
+  "ts": "2026-10-31",
+  "result": "OK",
+  "otherCar": null,
+  "note": "18,3 kW à 56 %, 8 °C",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-ers-enghien",
+  "stationId": "ers-enghien",
+  "ts": "2026-10-30",
+  "result": "REFUS",
+  "otherCar": true,
+  "note": "Voyant orange puis arrêt ; les autres voitures chargent",
+  "car": "Smart EQ fortwo"
+ }
+]

@@ -1,0 +1,532 @@
+[
+ {
+  "id": "colruyt-wemmel",
+  "name": "Colruyt, Chaussée Romaine 906",
+  "operator": "DATS 24",
+  "lat": 50.8966783,
+  "lon": 4.3211044,
+  "current": "AC",
+  "note": "Parking du magasin",
+  "kind": "releve"
+ },
+ {
+  "id": "presbytere-wemmel",
+  "name": "Rue du Presbytère 11, Wemmel",
+  "operator": "Allego",
+  "lat": 50.9082982,
+  "lon": 4.3022773,
+  "current": "AC",
+  "note": "",
+  "kind": "releve"
+ },
+ {
+  "id": "ra32-wemmel",
+  "name": "Avenue Reine Astrid 32, Wemmel",
+  "operator": "TotalEnergies",
+  "lat": 50.8986084,
+  "lon": 4.3143917,
+  "current": "AC",
+  "note": "Angle rue H. De Mol / rue P. Lauwers",
+  "kind": "releve"
+ },
+ {
+  "id": "ra9-wemmel",
+  "name": "Avenue Reine Astrid 9, Wemmel",
+  "operator": "TotalEnergies",
+  "lat": 50.8990089,
+  "lon": 4.3128511,
+  "current": "AC",
+  "note": "Près du rond-point Cdt J. De Block",
+  "kind": "releve"
+ },
+ {
+  "id": "blink-etangs",
+  "name": "Avenue des Etangs, Wemmel",
+  "operator": "Blink",
+  "lat": 50.9041,
+  "lon": 4.3068,
+  "current": "AC",
+  "note": "Position approximative, angle Chaussée de Bruxelles",
+  "kind": "releve"
+ },
+ {
+  "id": "vanermengem-jette",
+  "name": "Avenue Émile Van Ermengem, Jette",
+  "operator": "charge.brussels (à confirmer)",
+  "lat": 50.8926628,
+  "lon": 4.3273733,
+  "current": "AC",
+  "note": "",
+  "kind": "releve"
+ },
+ {
+  "id": "ra182-wemmel",
+  "name": "Avenue Reine Astrid 182, Wemmel",
+  "operator": "TotalEnergies",
+  "lat": 50.8947649,
+  "lon": 4.3178018,
+  "current": "AC",
+  "note": "À la limite de Jette, près du carrefour Chaussée Romaine (Arbre Ballon)",
+  "kind": "releve"
+ },
+ {
+  "id": "herne-geeststraat",
+  "name": "H. Geeststraat 22, Herne",
+  "operator": "Allego",
+  "lat": 50.7007143,
+  "lon": 4.0383619,
+  "current": "AC",
+  "note": "11 kW, près d'Enghien (1540) ; deux relevés positifs à un an d'intervalle",
+  "kind": "releve"
+ },
+ {
+  "id": "ezcharge-enghien",
+  "name": "Chaussée de Bruxelles 359, Enghien",
+  "operator": "EZCharge",
+  "lat": 50.6913654,
+  "lon": 4.0575222,
+  "current": "AC",
+  "note": "Parking du centre commercial du Parc, à côté de Brico ; les autres voitures chargent",
+  "kind": "releve"
+ },
+ {
+  "id": "dats-enghien",
+  "name": "Colruyt Enghien, Rue d'Hoves 124",
+  "operator": "DATS 24",
+  "lat": 50.6901414,
+  "lon": 4.0336843,
+  "current": "AC",
+  "note": "2 prises 11 kW. À essayer",
+  "kind": "candidat"
+ },
+ {
+  "id": "shell-europe12",
+  "name": "Rue de l'Europe 12, Enghien",
+  "operator": "Shell Recharge",
+  "lat": 50.6914979,
+  "lon": 4.0271788,
+  "current": "AC",
+  "note": "À essayer (données communautaires)",
+  "kind": "candidat"
+ },
+ {
+  "id": "libre-europe14",
+  "name": "Rue de l'Europe 14, Enghien",
+  "operator": "à identifier",
+  "lat": 50.691491,
+  "lon": 4.0277527,
+  "current": "AC",
+  "note": "7 kW, accès libre. À essayer (données communautaires)",
+  "kind": "candidat"
+ },
+ {
+  "id": "electra-arbreballon",
+  "name": "Electra, Arbre Ballon (rapide)",
+  "operator": "Electra",
+  "lat": 50.8939413,
+  "lon": 4.3235132,
+  "current": "DC",
+  "note": "Courant continu : inutilisable avec la Smart EQ",
+  "kind": "osm"
+ },
+ {
+  "id": "electra-enghien",
+  "name": "Electra Enghien, Delhaize (rapide)",
+  "operator": "Electra",
+  "lat": 50.6935,
+  "lon": 4.0319,
+  "current": "DC",
+  "note": "Courant continu : inutilisable avec la Smart EQ",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-1",
+  "name": "Clos Fernand Tonnet (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8924437,
+  "lon": 4.320919,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-2",
+  "name": "Avenue du Heymbosch (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8898687,
+  "lon": 4.3225092,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-3",
+  "name": "Rue Léopold Peret (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8851882,
+  "lon": 4.3356806,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-4",
+  "name": "Rue Maurice Van Rolleghem (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8911773,
+  "lon": 4.3245603,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-5",
+  "name": "Avenue Jean-Baptiste Depaire (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8906848,
+  "lon": 4.3334047,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-6",
+  "name": "Avenue du Bourgmestre Jean Neybergh (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8900318,
+  "lon": 4.3110311,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-7",
+  "name": "Rue Pierre Verschelden (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8844809,
+  "lon": 4.3346616,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-8",
+  "name": "Avenue du Comté de Jette (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8829576,
+  "lon": 4.3349167,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-9",
+  "name": "Avenue Rommelaere (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8907218,
+  "lon": 4.3269356,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-10",
+  "name": "Avenue Houba-de Strooper (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8979551,
+  "lon": 4.3271387,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-11",
+  "name": "Avenue Houba-de Strooper (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8954821,
+  "lon": 4.3299376,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-12",
+  "name": "Place de Belgique (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8979885,
+  "lon": 4.3376657,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-13",
+  "name": "Rue du Heysel (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8912779,
+  "lon": 4.3391165,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-14",
+  "name": "Avenue Jean Joseph Crocq (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8852571,
+  "lon": 4.3298494,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-15",
+  "name": "Avenue des Citronniers (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8950375,
+  "lon": 4.327195,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-16",
+  "name": "Steenweg op Brussel (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8955043,
+  "lon": 4.3121935,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-17",
+  "name": "Rue Marlène Dietrich (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8898855,
+  "lon": 4.3138367,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-18",
+  "name": "Rue Duysburgh (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8832911,
+  "lon": 4.339064,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-19",
+  "name": "Avenue du Bourgmestre Etienne Demunter (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8907549,
+  "lon": 4.3146768,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-20",
+  "name": "Avenue Jacques Swartenbrouck (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8900034,
+  "lon": 4.3184642,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-21",
+  "name": "RU-LP0696 (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8876861,
+  "lon": 4.3367749,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-22",
+  "name": "Boulevard de Smet de Naeyer (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8845172,
+  "lon": 4.3387334,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-23",
+  "name": "Avenue Stiénon (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8924902,
+  "lon": 4.3334899,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-24",
+  "name": "Avenue des Magnolias (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8980124,
+  "lon": 4.3299799,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-25",
+  "name": "Treft (OSM)",
+  "operator": "inconnu",
+  "lat": 50.9058551,
+  "lon": 4.3372319,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-26",
+  "name": "Avenue du Laerbeek (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8853147,
+  "lon": 4.3142557,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-27",
+  "name": "Rue de l'Église Saint-Pierre (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8803205,
+  "lon": 4.3270075,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-28",
+  "name": "Chaussée de Dieleghem (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8837205,
+  "lon": 4.3199021,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-29",
+  "name": "Rue Dupré (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8810349,
+  "lon": 4.323933,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-30",
+  "name": "Rue René Reniers (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8838576,
+  "lon": 4.3222315,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-31",
+  "name": "Rue Jean Tiebackx (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8866047,
+  "lon": 4.3180722,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-32",
+  "name": "Rue de l'Abbaye de Dieleghem (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8851848,
+  "lon": 4.3223563,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-33",
+  "name": "Rue Remy Soetens (OSM)",
+  "operator": "inconnu",
+  "lat": 50.8852545,
+  "lon": 4.3196054,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "osm-34",
+  "name": "Panoramastraat (OSM)",
+  "operator": "inconnu",
+  "lat": 50.9011113,
+  "lon": 4.3282089,
+  "current": "?",
+  "note": "Borne repérée sur OpenStreetMap, jamais essayée",
+  "kind": "osm"
+ },
+ {
+  "id": "cofabel-herne",
+  "name": "H. Geeststraat 1, Herne (carrefour Patriottensteenweg)",
+  "operator": "TotalEnergies (Cofabel)",
+  "lat": 50.7002447,
+  "lon": 4.0362873,
+  "current": "AC",
+  "note": "22 kW, 2 boîtiers près du cimetière ; accès par un portail de concessionnaire agricole (ouvert un samedi, fermé un dimanche en 2025)",
+  "kind": "releve"
+ },
+ {
+  "id": "ers-enghien",
+  "name": "Steenweg op Asse 136, Petit-Enghien",
+  "operator": "e-RS",
+  "lat": 50.7001769,
+  "lon": 4.0540368,
+  "current": "AC",
+  "note": "22 kW, près du rond-point ; les autres voitures chargent",
+  "kind": "releve"
+ },
+ {
+  "id": "gainestraat-herne",
+  "name": "Gainestraat 14, Herne (Hernepoort)",
+  "operator": "TotalEnergies",
+  "lat": 50.6958016,
+  "lon": 4.0345152,
+  "current": "AC",
+  "note": "22 kW, 1 prise libre sur 2 ; à essayer",
+  "kind": "candidat"
+ },
+ {
+  "id": "strijderstraat-herne",
+  "name": "Strijderstraat 20, Herne (Hernepoort)",
+  "operator": "TotalEnergies",
+  "lat": 50.6973419,
+  "lon": 4.0342305,
+  "current": "AC",
+  "note": "22 kW, 2 prises ; à essayer",
+  "kind": "candidat"
+ },
+ {
+  "id": "energyvision-asse3",
+  "name": "Chaussée d'Asse 3, Enghien",
+  "operator": "EnergyVision",
+  "lat": 50.6972215,
+  "lon": 4.0488624,
+  "current": "AC",
+  "note": "22 kW, près de la gare ; à essayer",
+  "kind": "candidat"
+ }
+]
