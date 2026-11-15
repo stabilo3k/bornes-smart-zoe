@@ -1,0 +1,1 @@
+Version 1.0 : envoi des relevés plus fiable, bouton « Bornes » (4 modes), compteurs, 7 modèles de voiture, FAQ enrichie (pays, chargeur Caméléon, glossaire, schémas), légende des zones en carrés.

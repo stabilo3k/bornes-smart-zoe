@@ -1,0 +1,15 @@
+Certaines voitures électriques refusent de charger sur certaines bornes belges alors que d'autres voitures y chargent normalement : la smart EQ fortwo et forfour (chargeur 22 kW), la Renault Zoé, la Twingo électrique, et, selon des sources non confirmées, le Renault Kangoo E-Tech, le Nissan Townstar EV et le Mercedes eCitan. Le chargeur embarqué de ces voitures semble exiger un conducteur neutre, absent des réseaux 3×230 V encore répandus à Bruxelles et autour.
+
+Bornes Smart et Zoé aide à savoir où ça charge, et où ça ne charge pas.
+
+• Un geste : après une recharge, appuyez sur « Ça charge » ou « Ne charge pas ». Le GPS et OpenStreetMap retrouvent la borne.
+• Carte colorée : vert (ça charge), rouge (ne charge pas), orange (essais opposés), gris (pas encore essayée).
+• Zones estimées (expérimentales) pour les bornes jamais essayées, d'après les relevés voisins.
+• Bouton « Bornes » : liste actuelle, bornes proches d'un relevé, toutes les bornes de la zone affichée, ou bornes à essayer près de vous.
+• Relevés partagés entre utilisatrices et utilisateurs, de façon anonyme : ni compte, ni nom, ni trajet.
+• Une FAQ qui explique le problème, ce qu'on sait, ce qu'on suppose, les pays concernés, un glossaire (IT, TT, TN…) et les solutions.
+• Liste fermée de voitures concernées : les autres voitures sont volontairement exclues, car elles rendraient une borne « compatible » à tort.
+
+Sans publicité, sans pistage, sans services Google. Cartes © contributeurs OpenStreetMap, fond OpenFreeMap. Les relevés sont partagés via un serveur Supabase hébergé dans l'Union européenne.
+
+Important : l'application donne des relevés d'utilisateurs, pas une garantie. Elle ne remplace pas l'avis d'un électricien ni celui du constructeur. Ne modifiez jamais votre installation électrique sans un professionnel qualifié. Application indépendante, non affiliée à Renault, Nissan, Mercedes-Benz ni smart.

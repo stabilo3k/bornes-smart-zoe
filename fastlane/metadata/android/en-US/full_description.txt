@@ -1,0 +1,15 @@
+Some electric cars refuse to charge at certain public chargers in Belgium while other cars charge there without trouble: the smart EQ fortwo and forfour (22 kW charger), the Renault Zoé, the Twingo Electric and, according to unconfirmed sources, the Renault Kangoo E-Tech, Nissan Townstar EV and Mercedes eCitan. The on-board charger of these cars seems to require a neutral conductor, which is missing on the 3×230 V grids still common in Brussels and around.
+
+Bornes Smart and Zoé helps you find where it charges and where it does not.
+
+• One tap: after charging, press "Ça charge" (it charges) or "Ne charge pas" (it does not). GPS and OpenStreetMap find the charger.
+• Coloured map: green (charges), red (does not), orange (mixed results), grey (not tried yet).
+• Estimated zones (experimental) for chargers nobody has tried, based on nearby reports.
+• "Bornes" button: current list, chargers near a report, all chargers on screen, or chargers to try near you.
+• Anonymous reports shared between users: no account, no name, no trip.
+• An in-app FAQ (French) explaining the problem, what is known, what is assumed, which countries are affected, a glossary (IT, TT, TN…) and possible solutions.
+• Closed list of affected cars: other cars are deliberately excluded because they would wrongly make a charger look "compatible".
+
+No ads, no tracking, no Google services. Map data © OpenStreetMap contributors, tiles by OpenFreeMap. Reports are shared through a Supabase server hosted in the European Union. The app interface is in French.
+
+Important: the app shows user reports, not a guarantee. It does not replace advice from an electrician or the car maker. Never modify your electrical installation without a qualified professional. Independent app, not affiliated with Renault, Nissan, Mercedes-Benz or smart.

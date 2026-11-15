@@ -1,0 +1,1 @@
+Version 1.0: more reliable report upload, "Bornes" button (4 display modes), counters, 7 car models, richer FAQ (countries, Caméléon charger, glossary, diagrams), zone legend as squares.
