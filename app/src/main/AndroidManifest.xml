@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <application
         android:allowBackup="false"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
         android:label="Bornes Smart et Zoé"
         android:theme="@style/Theme.BorneSmart">
         <activity android:name=".MainActivity" android:exported="true">
