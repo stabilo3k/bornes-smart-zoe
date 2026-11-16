@@ -1,0 +1,1 @@
+More tolerant matching of a report to the nearby charger (up to 150 m), 'remote' flag, diagnostic log under the info button.

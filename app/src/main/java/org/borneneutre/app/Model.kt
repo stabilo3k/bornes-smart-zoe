@@ -27,7 +27,8 @@ data class Releve(
     val otherCar: Boolean?,
     val note: String,
     val seed: Boolean,
-    val car: String = ""
+    val car: String = "",
+    val remote: Boolean = false
 )
 
 const val DEFAULT_CAR = "Smart EQ fortwo"
@@ -150,7 +151,7 @@ object Store {
     private fun releveJson(r: Releve) = JSONObject()
         .put("id", r.id).put("stationId", r.stationId).put("ts", r.ts)
         .put("result", r.result.name).put("note", r.note).put("car", r.car)
-        .also { if (r.otherCar != null) it.put("otherCar", r.otherCar) }
+        .also { if (r.otherCar != null) it.put("otherCar", r.otherCar); if (r.remote) it.put("remote", true) }
 
     private fun parseStations(a: JSONArray): List<Station> = (0 until a.length()).map {
         val o = a.getJSONObject(it)
@@ -167,7 +168,7 @@ object Store {
             o.getString("id"), o.getString("stationId"), o.optString("ts", ""),
             Result.valueOf(o.getString("result")),
             if (o.has("otherCar") && !o.isNull("otherCar")) o.getBoolean("otherCar") else null,
-            o.optString("note", ""), seed, o.optString("car", "")
+            o.optString("note", ""), seed, o.optString("car", ""), o.optBoolean("remote", false)
         )
     }
 }

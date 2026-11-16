@@ -162,4 +162,13 @@ class AppTest {
         assertTrue(LEGEND_ZONES.all { it.square })
         assertEquals(setOf("#bfe0c0", "#eebdbd"), LEGEND_ZONES.map { it.color }.toSet())
     }
+
+    @Test fun remoteFlagSentOnlyWhenTrue() {
+        val st = Station("s1", "Lidl", "", 50.9, 4.3, "AC", "", "osm")
+        val near = Releve("a1", "s1", "2026-11-16", Result.OK, null, "", false, DEFAULT_CAR)
+        val far = near.copy(id = "a2", remote = true)
+        val rows = Sync.toRows(listOf(near, far), mapOf("s1" to st), "dev", emptySet())
+        assertFalse(rows.getJSONObject(0).has("remote"))
+        assertTrue(rows.getJSONObject(1).getBoolean("remote"))
+    }
 }

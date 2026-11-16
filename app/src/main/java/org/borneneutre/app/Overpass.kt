@@ -46,6 +46,8 @@ object Overpass {
         val body = "data=" + URLEncoder.encode(query(lat, lon, radiusM), "UTF-8")
         val errs = ArrayList<String>()
         for (ep in ENDPOINTS) {
+            val t0 = System.currentTimeMillis()
+            val host = ep.substringAfter("//").substringBefore("/")
             try {
                 val c = URL(ep).openConnection() as HttpURLConnection
                 c.requestMethod = "POST"; c.connectTimeout = 8000; c.readTimeout = 30000; c.doOutput = true
@@ -54,10 +56,12 @@ object Overpass {
                 c.setRequestProperty("Accept", "application/json")
                 c.outputStream.use { it.write(body.toByteArray()) }
                 val code = c.responseCode
-                if (code == 200) { lastError = ""; return parse(c.inputStream.bufferedReader().readText()) }
-                errs.add(ep.substringAfter("//").substringBefore("/") + " : HTTP " + code)
+                if (code == 200) { lastError = ""; val r = parse(c.inputStream.bufferedReader().readText()); DiagLog.add("OSM autour ($radiusM m) $host : OK ${r.size} borne(s), ${System.currentTimeMillis() - t0} ms"); return r }
+                errs.add("$host : HTTP $code")
+                DiagLog.add("OSM autour ($radiusM m) $host : HTTP $code, ${System.currentTimeMillis() - t0} ms")
             } catch (e: Exception) {
-                errs.add(ep.substringAfter("//").substringBefore("/") + " : " + e.javaClass.simpleName)
+                errs.add("$host : " + e.javaClass.simpleName)
+                DiagLog.add("OSM autour ($radiusM m) $host : ${e.javaClass.simpleName} ${(e.message ?: "").take(60)}, ${System.currentTimeMillis() - t0} ms")
             }
         }
         lastError = errs.joinToString(" ; ")
@@ -69,13 +73,18 @@ object Overpass {
         val q = "[out:json][timeout:60];nwr[\"amenity\"=\"charging_station\"]($s,$w,$n,$e);out center tags;"
         val body = "data=" + URLEncoder.encode(q, "UTF-8")
         for (ep in ENDPOINTS) {
+            val t0 = System.currentTimeMillis()
+            val host = ep.substringAfter("//").substringBefore("/")
             try {
                 val c = URL(ep).openConnection() as HttpURLConnection
                 c.requestMethod = "POST"; c.connectTimeout = 8000; c.readTimeout = 70000; c.doOutput = true
                 c.setRequestProperty("User-Agent", "BorneNeutre/1.0 (Android)"); c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 c.outputStream.use { it.write(body.toByteArray()) }
-                if (c.responseCode == 200) return c.inputStream.bufferedReader().readText()
-            } catch (_: Exception) {
+                val code = c.responseCode
+                if (code == 200) { val t = c.inputStream.bufferedReader().readText(); DiagLog.add("OSM zone $host : OK ${t.length / 1024} Ko, ${System.currentTimeMillis() - t0} ms"); return t }
+                DiagLog.add("OSM zone $host : HTTP $code, ${System.currentTimeMillis() - t0} ms")
+            } catch (e: Exception) {
+                DiagLog.add("OSM zone $host : ${e.javaClass.simpleName} ${(e.message ?: "").take(60)}, ${System.currentTimeMillis() - t0} ms")
             }
         }
         return null

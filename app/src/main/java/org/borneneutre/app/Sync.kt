@@ -44,6 +44,7 @@ object Sync {
                     .put("station_name", s.name.take(120)).put("lat", s.lat).put("lon", s.lon)
                     .put("current", if (s.current in listOf("AC", "DC")) s.current else "?")
                     .put("result", r.result.name).put("car", car).put("ts", r.ts)
+                    .also { if (r.remote) it.put("remote", true) }
             )
         }
         return out
@@ -62,7 +63,7 @@ object Sync {
             val sid = o.getString("station_id")
             if (sid !in knownStationIds && sid !in st)
                 st[sid] = Station(sid, o.optString("station_name", "Borne"), "", o.getDouble("lat"), o.getDouble("lon"), o.optString("current", "?"), "", "commu")
-            rl.add(Releve(cid, sid, o.optString("ts", ""), Result.valueOf(o.getString("result")), null, "", false, car))
+            rl.add(Releve(cid, sid, o.optString("ts", ""), Result.valueOf(o.getString("result")), null, "", false, car, o.optBoolean("remote", false)))
         }
         return Pair(st.values.toList(), rl)
     }
@@ -127,12 +128,13 @@ object Sync {
         lastCode = ""
         if (rows.length() > 0) {
             newSent = sent + upload(rows) { body ->
-                try { val r = call(POST, "POST", body, PREFER); lastCode = "HTTP ${r.code} ${(r.err ?: "").take(90)}"; classify(r.code, r.err) }
-                catch (e: Exception) { lastCode = e.javaClass.simpleName; -1 }
+                try { val r = call(POST, "POST", body, PREFER); lastCode = "HTTP ${r.code} ${(r.err ?: "").take(90)}"; DiagLog.add("envoi relevés : $lastCode"); classify(r.code, r.err) }
+                catch (e: Exception) { lastCode = e.javaClass.simpleName; DiagLog.add("envoi relevés : $lastCode ${(e.message ?: "").take(60)}"); -1 }
             }
             saveSynced(ctx, newSent)
         }
         val waiting = rows.length() - (newSent - sent).size
+        DiagLog.add("synchro : $waiting en attente / ${rows.length()} à envoyer")
         status = when {
             waiting > 0 -> "envoi en attente : $waiting relevé(s) ($lastCode)"
             rows.length() > 0 -> "${rows.length()} relevé(s) envoyé(s)" + (if (priv > 0) ", $priv privé(s) non envoyé(s)" else "")
@@ -141,8 +143,13 @@ object Sync {
         }
         val all = JSONArray()
         var offset = 0
+        var withRemote = true
         while (offset < 20000) {
-            val r = call("releves?select=client_id,station_id,station_name,lat,lon,current,result,car,ts&order=client_id.asc&limit=1000&offset=$offset", "GET", null)
+            val base = "releves?select=client_id,station_id,station_name,lat,lon,current,result,car,ts"
+            // La colonne « remote » n'existe qu'après la mise à jour SQL : repli sans elle si le serveur la refuse.
+            var r = call(base + (if (withRemote) ",remote" else "") + "&order=client_id.asc&limit=1000&offset=$offset", "GET", null)
+            if (r.body == null && withRemote && r.code == 400) { withRemote = false; DiagLog.add("lecture relevés : colonne remote absente (HTTP 400), repli"); r = call(base + "&order=client_id.asc&limit=1000&offset=$offset", "GET", null) }
+            if (r.body == null) DiagLog.add("lecture relevés : HTTP ${r.code} ${(r.err ?: "").take(90)}")
             val page = JSONArray(r.body ?: return null)
             for (k in 0 until page.length()) all.put(page.get(k))
             if (page.length() < 1000) break
@@ -151,6 +158,7 @@ object Sync {
         Pair(all.toString(), newSent)
     } catch (e: Exception) {
         status = "réseau indisponible (${e.javaClass.simpleName})"
+        DiagLog.add("synchro : ${e.javaClass.simpleName} ${(e.message ?: "").take(60)}")
         null
     }
 }

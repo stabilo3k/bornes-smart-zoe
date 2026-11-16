@@ -102,6 +102,7 @@ private const val EMPTY = """{"type":"FeatureCollection","features":[]}"""
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        DiagLog.init(this)
         super.onCreate(savedInstanceState)
         MapLibre.getInstance(this)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -294,14 +295,14 @@ fun App() {
             val ll = LatLng(loc.latitude, loc.longitude)
             myPos = ll
             map?.animateCamera(CameraUpdateFactory.newLatLngZoom(ll, 17.0))
-            val known = Overpass.candidates(loc.latitude, loc.longitude, stations, osmStations, 60.0)
+            val known = Overpass.candidates(loc.latitude, loc.longitude, stations, osmStations, 150.0)
             pending = Pending(result, loc.latitude, loc.longitude, known, 1)
             scope.launch {
-                val job = async(Dispatchers.IO) { Overpass.fetch(loc.latitude, loc.longitude, 80) }
+                val job = async(Dispatchers.IO) { Overpass.fetch(loc.latitude, loc.longitude, 200) }
                 val found = withTimeoutOrNull(10_000) { job.await() }
                 if (reportToken != token) return@launch
                 if (found != null) osmStations = (osmStations + found).distinctBy { it.id }
-                val cands = Overpass.candidates(loc.latitude, loc.longitude, stations, osmStations, 60.0)
+                val cands = Overpass.candidates(loc.latitude, loc.longitude, stations, osmStations, 150.0)
                 pending = pending?.copy(candidates = cands, phase = 2)
             }
         }
@@ -324,7 +325,7 @@ fun App() {
         scope.launch {
             val found = withTimeoutOrNull(75_000) { withContext(Dispatchers.IO) { Overpass.fetch(lat, lon, radius) } }
             loadingScreen = false
-            if (found == null) Toast.makeText(ctx, "Serveur OpenStreetMap injoignable (${Overpass.lastError.ifBlank { "délai dépassé" }}). Réessayez plus tard.", Toast.LENGTH_LONG).show()
+            if (found == null) Toast.makeText(ctx, "Serveur OpenStreetMap injoignable (${Overpass.lastError.ifBlank { "délai dépassé" }}). Réessayez plus tard. Détails : ⓘ → Journal de diagnostic.", Toast.LENGTH_LONG).show()
             else screenOsm = (screenOsm + found).distinctBy { it.id }
         }
     }
@@ -374,7 +375,7 @@ fun App() {
         }
     }
     var lastSaved by remember { mutableStateOf<String?>(null) }
-    fun saveReleve(stationId: String?, lat: Double, lon: Double, result: Result, newName: String = "", share: Boolean = true) {
+    fun saveReleve(stationId: String?, lat: Double, lon: Double, result: Result, newName: String = "", share: Boolean = true, remote: Boolean = false) {
         var sid = stationId
         var us = userStations
         if (sid == null) {
@@ -385,7 +386,7 @@ fun App() {
             if (o != null) us = us + o
         }
         val rid = "u" + UUID.randomUUID().toString().replace("-", "").take(16)
-        val ur = userReleves + Releve(rid, sid, LocalDate.now().toString(), result, null, "", false, myCar)
+        val ur = userReleves + Releve(rid, sid, LocalDate.now().toString(), result, null, "", false, myCar, remote)
         userStations = us
         userReleves = ur
         Store.saveUser(ctx, us, ur)
@@ -466,7 +467,7 @@ fun App() {
             val sel = selectedId?.let { byId[it] }
             if (sel != null) {
                 StationCard(sel, releves, myCar, onClose = { selectedId = null },
-                    onReport = { r -> saveReleve(sel.id, sel.lat, sel.lon, r) })
+                    onReport = { r -> saveReleve(sel.id, sel.lat, sel.lon, r, remote = true) })
             }
             if (lastSaved != null) {
                 Card(Modifier.fillMaxWidth()) {
@@ -555,7 +556,7 @@ fun App() {
 
     pending?.let { p ->
         ConfirmDialog(p, myCar, onDismiss = { pending = null }) { stationId, name, share ->
-            saveReleve(stationId, p.lat, p.lon, p.result, name, share)
+            saveReleve(stationId, p.lat, p.lon, p.result, name, share, remote = stationId != null && (p.candidates.firstOrNull { it.first.id == stationId }?.second ?: 0.0) > 60.0)
             pending = null
         }
     }
@@ -602,7 +603,7 @@ fun StationCard(s: Station, releves: List<Releve>, myCar: String, onClose: () ->
                 mine.sortedByDescending { it.ts }.forEach {
                     val r = if (it.result == Result.OK) "✓ ça charge" else if (it.result == Result.REFUS) "✕ ne charge pas" else "limité"
                     val c = canonicalCar(it.car) ?: DEFAULT_CAR
-                    Text("• ${it.ts} : $r" + if (c != myCar) " ($c)" else "", fontSize = 12.sp)
+                    Text("• ${it.ts} : $r" + (if (c != myCar) " ($c)" else "") + (if (it.remote) " · à distance" else ""), fontSize = 12.sp)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -681,6 +682,24 @@ fun ConfirmDialog(p: Pending, car: String, onDismiss: () -> Unit, onConfirm: (St
 @Composable
 fun AboutDialog(onDismiss: () -> Unit) {
     val ctx = LocalContext.current
+    var showLog by remember { mutableStateOf(false) }
+    if (showLog) {
+        var txt by remember { mutableStateOf(DiagLog.text()) }
+        AlertDialog(
+            onDismissRequest = { showLog = false },
+            title = { Text("Journal de diagnostic") },
+            text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text(txt, fontSize = 11.sp, lineHeight = 14.sp) } },
+            confirmButton = { TextButton(onClick = {
+                val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("journal", txt))
+                Toast.makeText(ctx, "Journal copié", Toast.LENGTH_SHORT).show()
+            }) { Text("Copier") } },
+            dismissButton = { Row {
+                TextButton(onClick = { DiagLog.clear(); txt = DiagLog.text() }) { Text("Effacer") }
+                TextButton(onClick = { showLog = false }) { Text("Fermer") }
+            } }
+        )
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Bornes Smart et Zoé") },
@@ -691,6 +710,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Text("Vos relevés (borne, résultat, date, modèle de voiture) sont partagés anonymement : ni nom, ni plaque, ni trajet. Voir la FAQ « Que deviennent mes relevés ? ».", fontSize = 13.sp)
                 Text("Projet indépendant, non affilié à Renault ni à Mercedes-Benz / smart. Cartes © contributeurs OpenStreetMap, fond OpenFreeMap.", fontSize = 12.sp)
                 TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe"))) }) { Text("Code source et signalement d'un problème") }
+                TextButton(onClick = { showLog = true }) { Text("Journal de diagnostic") }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Fermer") } }
