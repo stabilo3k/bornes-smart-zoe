@@ -4,146 +4,226 @@
   "q": "Pourquoi ma Smart EQ refuse-t-elle de charger sur certaines bornes ?",
   "a": "Hypothèse de travail, non confirmée par Mercedes ni Renault : le chargeur embarqué contrôle le réseau avant de démarrer. Sur du 3×230 V sans neutre, la borne fabrique un « neutre » avec une phase, à environ 133 V de la terre. Une fiche d'exigences du chargeur Smart 22 kW (site communautaire, pas le constructeur) indique : neutre à moins de 10 V de la terre, réseau IT exclu, tension minimale 150 V, courant minimal de 8 A en triphasé, terre sous 100 Ω. Ces valeurs concordent avec l'hypothèse mais ne la prouvent pas, et la fiche ne précise pas si les 150 V se mesurent entre phase et terre ou entre phases. Autres causes possibles : qualité de la terre, courant de fuite, protection de la borne. Le partage de puissance entre deux voitures n'est pas retenu : plusieurs voitures chargent souvent en même temps sans problème sur les bornes où la Smart charge. En Belgique, un réseau 3×230 V sans neutre distribué n'est en général pas un réseau « IT » au sens strict (le point neutre est le plus souvent relié à la terre au transformateur) : c'est le critère neutre–terre, plus que le mot « IT », qui porte l'hypothèse. Ne reliez jamais vous-même un neutre à la terre, n'utilisez aucun adaptateur qui simule un neutre ou une terre et ne modifiez aucune protection.",
   "src": "Fiche smart EMOTION (communautaire, non officielle) ; Brugel 2020 ; Elbilgrossisten ; Sibelga SIB23 ; EREA ; Sibelga/Brugel plan 2020-2024 §4.3.6",
-  "img": "faq-reseaux.png"
+  "img": "faq-reseaux.png",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "voitures-concernees",
   "q": "Quelles voitures sont concernées par ce problème ?",
   "a": "L'étude Brugel (2020) cite trois modèles qui ont besoin d'un neutre et « utilisent le même onduleur » : Renault Zoé, Smart fortwo et Smart forfour. Le manuel installateur d'Enel X Way (fabricant de bornes, 03/2023) prévoit un cas particulier pour « Renault Zoe, Smart 22 kW, Twingo Electric » : terre sous 100 Ω, tension neutre–terre sous 10 V, réseau non IT, sinon un transformateur en amont. Nissan Norvège indique que le Townstar EV exige un réseau TN. Des revendeurs (Elbilgrossisten, NoFuel) citent aussi Kangoo E-Tech, Citan/eCitan et Townstar. L'app propose sept modèles : Smart EQ fortwo, Smart EQ forfour, Renault Zoé, Renault Twingo électrique (une seule plainte publiée), Renault Kangoo E-Tech, Nissan Townstar EV et Mercedes eCitan ; pour les trois derniers, le lien avec le même chargeur est rapporté, non confirmé. Pour la Smart, l'app ne concerne que le chargeur 22 kW triphasé (option d'origine) ; la version 4,6 kW (7 kW selon le marché) n'est pas documentée. Les autres voitures sont volontairement exclues : une voiture qui charge partout (une Tesla, par exemple) rendrait une borne « compatible » à tort. Aucun des manuels de voiture lus (Zoé 2018, Twingo 2023, Townstar 2024, smart 2017/2018) ne mentionne le neutre ni la terre.",
-  "src": "Brugel 2020 ; Enel X Way Waybox REV.2 p. 117 ; Nissan Norvège ; Elbilgrossisten ; NoFuel ; manuels constructeurs"
+  "src": "Brugel 2020 ; Enel X Way Waybox REV.2 p. 117 ; Nissan Norvège ; Elbilgrossisten ; NoFuel ; manuels constructeurs",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "cameleon",
   "q": "La Smart et la Zoé ont-elles le même chargeur ?",
   "a": "Le chargeur de la Zoé s'appelle « Caméléon » (Renault) : il utilise les bobinages du moteur et l'onduleur pour charger de 3 à 22 kW (43 kW sur d'anciennes Zoé). Pour la Smart EQ 22 kW (option, code 908), des forums et Brugel (« même onduleur ») parlent d'un chargeur de la même famille : rapporté, non confirmé par écrit. Kangoo E-Tech, Nissan Townstar et Mercedes eCitan seraient de la même famille selon un revendeur (NoFuel) : rapporté aussi.",
-  "src": "Renault ; Brugel 2020 ; forums ; NoFuel"
+  "src": "Renault ; Brugel 2020 ; forums ; NoFuel",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "autre-marque",
   "q": "Une autre voiture charge sans souci à la même borne : pourquoi pas la mienne ?",
   "a": "Parce que chaque voiture a son propre chargeur embarqué, avec ses propres contrôles. Une voiture qui charge à une borne prouve que la borne fonctionne, pas que la vôtre sera acceptée. C'est pourquoi l'app ne retient que les relevés des quatre modèles de la liste, qui partagent ce comportement.",
-  "src": "Logique de l'app ; Brugel 2020"
+  "src": "Logique de l'app ; Brugel 2020",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "reseaux",
   "q": "3×230 V ou 3×400 V + N : quelle différence ?",
   "a": "3×230 V : trois phases, 230 V entre elles ; un appareil monophasé se branche entre deux phases. 3×400 V + N : 400 V entre phases, 230 V entre phase et neutre, neutre proche de la terre. Chiffres bruxellois (chacun avec sa propre unité, aucun ne mesure les bornes incompatibles) : Brugel (2020) : environ 88 % du réseau en 230 V et 12 % en 400 V + N ; câblage 2019 : 37 % en 3×230 V sans neutre, 52 % avec un neutre (lecture à confirmer : ce neutre n'est pas à 230 V d'une phase) et 11 % en 3×400 V + N. Sibelga : 80 % du territoire couvert en 230 V (le territoire n'est pas le nombre de clients). Le raccordement exact d'une borne publique ne se déduit pas de la rue.",
   "src": "Brugel, étude 32 (2020) ; Sibelga ; ORES",
-  "img": "faq-reseaux.png"
+  "img": "faq-reseaux.png",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "pays",
   "q": "Dans quels pays le problème existe-t-il ?",
   "a": "Aucun chiffre mondial n'existe ; voici ce qui est documenté. Norvège : environ 70 à 80 % des logements/du réseau en 230 V de type IT (NAF, NVE, installateurs) : le cas le plus connu. Belgique : 88 % du réseau bruxellois en 230 V selon Brugel (37 % du câblage sans neutre) ; 20 à 30 % des installations en Flandre et à Bruxelles selon Eniris ; environ 25 à 27 % des clients de Fluvius en 230 V (chiffres anciens, dont très peu sans neutre). France, Italie (centre de Rome), Portugal : des zones existent (installateurs, fabricants), sans pourcentage publié. Allemagne, Pays-Bas, Suède, Finlande, Suisse, Danemark : réseaux 230/400 V avec neutre ou terre solide ; le problème de réseau y est probablement rare (non chiffré). Une mauvaise prise de terre peut en outre faire refuser la Zoé partout. En conclusion : le problème est surtout belge (Bruxelles en tête) et norvégien, avec des poches locales ailleurs ; ce n'est pas uniquement belge.",
-  "src": "NAF ; NVE ; Brugel 2020 ; Eniris ; Fluvius ; installateurs"
+  "src": "NAF ; NVE ; Brugel 2020 ; Eniris ; Fluvius ; installateurs",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "savoir-reseau",
   "q": "Comment savoir quel réseau alimente mon logement ?",
   "a": "Du plus simple au plus sûr : 1) l'afficheur du compteur numérique : sur un raccordement à 3 fils (3×230 V) la tension de la phase 2 s'affiche à 0 V (Sibelga) ; chez Fluvius, un astérisque au-dessus de L2 indique le 3×230 V, une flèche le 3×400 V ; 2) le nombre de fils entre compteur et tableau (3 = 230 V, 4 = 400 V + N), à titre indicatif seulement ; 3) votre code EAN sur le site du gestionnaire (Sibelga, ORES, RESA, Fluvius) ou une simple demande écrite au gestionnaire ; 4) la mesure d'un électricien : environ 230 V entre deux phases = 3×230 V, environ 400 V = 3×400 V + N. N'ouvrez jamais les parties plombées du compteur.",
-  "src": "Sibelga (compteur), Fluvius (P1), Energuide, YouPower"
+  "src": "Sibelga (compteur), Fluvius (P1), Energuide, YouPower",
+  "sec": "Le problème : réseaux, bornes et voitures"
+ },
+ {
+  "id": "compteur-133",
+  "q": "Mon compteur indique « 133/230 V » : qu'est-ce que cela veut dire ?",
+  "a": "Une étiquette 133/230 V sur le compteur ou le tableau indique en général un réseau 3×230 V sans neutre (en triangle) : 230 V entre phases, environ 133 V entre une phase et la terre. C'est un fort indice, pas une preuve : seul le gestionnaire de réseau ou un électricien peut le confirmer. Un réseau 3×400 V + neutre porte plutôt l'indication 230/400 V.",
+  "src": "Observation d'un compteur belge (P.F.) ; à confirmer par le gestionnaire de réseau",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "testeur",
   "q": "Mon testeur de prise peut-il détecter un réseau incompatible ?",
   "a": "C'est un indice, pas une preuve. Un testeur standard suppose un vrai neutre proche de la terre. Sur un réseau 3×230 V (ou une prise « 2×230 V » sans neutre), les deux conducteurs sont à environ 133 V de la terre : plusieurs testeurs affichent alors « inversion phase/neutre » ou « phase/terre inversée, terre manquante ». Des cas de ce type sont rapportés sur des forums d'électriciens belges, sans test contrôlé. À l'inverse, un testeur « correct » ne garantit rien : si un conducteur est relié à la terre, ou en 3×400 V + N avec un neutre dégradé, l'affichage peut être normal. Ne branchez jamais un testeur entre deux phases d'un 400 V. Utilisation prudente : uniquement sur une prise murale domestique, jamais sur une borne, un adaptateur ou un tableau ; comparez deux ou trois prises ; en cas de doute, appelez un électricien.",
   "src": "BricoZone (fils testeur de prise) ; notice iTest ST007 ; EREA",
-  "img": "faq-testeur.png"
+  "img": "faq-testeur.png",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "mesure",
   "q": "Quelle mesure donne une réponse fiable ?",
   "a": "Une mesure de tension par un électricien qualifié : environ 133 V entre chaque phase et la terre en 3×230 V ; environ 230 V phase-terre et presque 0 V neutre-terre en 3×400 V + N (méthode publiée par Sibelga). Les chargeurs refusent typiquement au-delà de 20 à 30 V entre neutre et terre ; la fiche communautaire Smart cite 10 V. Un multimètre numérique à forte impédance peut afficher des tensions fantômes sur un fil non relié : une mesure ne se fait pas seul, à l'aveugle. Ne reliez jamais un neutre à la terre pour « essayer ».",
-  "src": "Sibelga SIB23 §6.5 (via Belix) ; EREA ; BouwInfo"
- },
- {
-  "id": "avant-borne",
-  "q": "Avant d'investir dans une borne à domicile, que faire ?",
-  "a": "1) Identifier le réseau (compteur, EAN, gestionnaire). 2) Si c'est du 3×230 V, considérer que la Smart 22 kW risque de refuser sans neutre pur. 3) Essayer d'abord en conditions réelles, par exemple avec un transformateur ou une borne prêtés, avant d'acheter. 4) Demander au vendeur par écrit si la borne fonctionne en 3×230 V et en l'absence de neutre. 5) Notifier la borne au gestionnaire (obligatoire à Bruxelles). 6) Garder en tête les autres options : recharge sur bornes publiques en 400 V + N (voir la carte), ou conversion du bâtiment en 400 V + N demandée au gestionnaire, aux frais du demandeur.",
-  "src": "Sibelga SIB23 §4.4, §5.1"
- },
- {
-  "id": "transfo",
-  "q": "Un transformateur règle-t-il le problème ?",
-  "a": "Avertissement : ne reliez jamais vous-même un neutre à la terre, n'achetez aucun adaptateur qui simule un neutre ou une terre, ne modifiez aucune protection. Un transformateur se pose par un électricien, avec sa propre protection. En principe oui : un transformateur de séparation (isolement) crée un réseau séparé avec un neutre pur relié à la terre. Un autotransformateur coûte moins cher mais ne permet pas de relier le neutre à la terre et tolère au plus 10 % de déséquilibre. Brugel (2020) évoque un surcoût allant jusqu'à 4 000 € TVAC pour un transformateur d'isolement ou un câble spécial (neutre virtuel, cité pour la Zoé seulement) et ne connaissait pas de solution pour la Smart. Inconvénients : coût, encombrement, pertes, et selon le modèle une charge limitée ou lente. Le circuit aval est un nouveau réseau : prévoir sa protection propre (fusible, différentiel adapté), car les différentiels en amont ne voient pas ses défauts. À Bruxelles, le 11 kW triphasé sur 3×230 V n'est admis qu'avec un transformateur d'isolement.",
-  "src": "Brugel 2020 ; EREA (neutre et bornes de recharge) ; Sibelga SIB23 §4.1.2"
- },
- {
-  "id": "solution-bruxelles",
-  "q": "Existe-t-il une solution à Bruxelles ?",
-  "a": "charge.brussels (un des opérateurs de bornes publiques) indique que la Zoé et la smart ForTwo ont besoin d'un neutre, que celui-ci n'est pas disponible partout à Bruxelles, et propose deux pastilles : verte (22 kW, 3×400 V + N : compatible) et blanche (7,2 kW, 1×230 V : non compatible). On ne sait pas encore si ces pastilles sont posées sur les bornes ni comment elles sont attribuées. Page : charge.brussels/fr_BE/howtocharge",
-  "src": "charge.brussels"
+  "src": "Sibelga SIB23 §6.5 (via Belix) ; EREA ; BouwInfo",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "mono",
   "q": "Une borne monophasée 3,7 ou 7,4 kW suffit-elle sur du 3×230 V ?",
   "a": "Sur 3×230 V, une borne monophasée est branchée entre deux phases : c'est précisément le cas où la Smart 22 kW et la Zoé sont réputées refuser. Sibelga l'autorise (3,7 kW en 16 A, 7,4 kW en 32 A) : son accord porte sur le réseau, pas sur la voiture.",
-  "src": "Sibelga SIB23 §4.1.2"
+  "src": "Sibelga SIB23 §4.1.2",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
-  "id": "statuts",
-  "q": "Que signifient les couleurs et les zones dans l'app ?",
-  "a": "Vert : des utilisateurs de ces voitures ont chargé sans problème. Rouge : la voiture n'a pas chargé. Orange : essais opposés, c'est-à-dire au moins un essai réussi et au moins un refus sur la même borne (à retenter). Gris : pas encore essayée (vert pâle ou rose pâle : estimation d'après les relevés voisins). Les zones colorées sont des estimations expérimentales, calculées à partir des relevés proches et de la zone du gestionnaire de réseau (Sibelga, Fluvius, ORES) : aucune garantie. Plus il y a de relevés, plus c'est fiable ; un refus isolé parmi de nombreux succès ne change pas la couleur (à partir de 5 relevés). Une pastille verte n'est pas une garantie : même en 3×400 V, la tension entre la terre locale et le neutre peut varier. Gardez toujours une marge de batterie et ne comptez jamais sur une seule borne.",
-  "src": "Logique de l'app"
+  "id": "transfo",
+  "q": "Un transformateur règle-t-il le problème ?",
+  "a": "Avertissement : ne reliez jamais vous-même un neutre à la terre, n'achetez aucun adaptateur qui simule un neutre ou une terre, ne modifiez aucune protection. Un transformateur se pose par un électricien, avec sa propre protection. En principe oui : un transformateur de séparation (isolement) crée un réseau séparé avec un neutre pur relié à la terre. Un autotransformateur coûte moins cher mais ne permet pas de relier le neutre à la terre et tolère au plus 10 % de déséquilibre. Brugel (2020) évoque un surcoût allant jusqu'à 4 000 € TVAC pour un transformateur d'isolement ou un câble spécial (neutre virtuel, cité pour la Zoé seulement) et ne connaissait pas de solution pour la Smart. Inconvénients : coût, encombrement, pertes, et selon le modèle une charge limitée ou lente. Le circuit aval est un nouveau réseau : prévoir sa protection propre (fusible, différentiel adapté), car les différentiels en amont ne voient pas ses défauts. À Bruxelles, le 11 kW triphasé sur 3×230 V n'est admis qu'avec un transformateur d'isolement.",
+  "src": "Brugel 2020 ; EREA (neutre et bornes de recharge) ; Sibelga SIB23 §4.1.2",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
-  "id": "temoin",
-  "q": "Un refus prouve-t-il que la borne est incompatible ?",
-  "a": "Non. Une borne en panne ou un câble défectueux peuvent aussi donner un refus. Si possible, refaites un essai sur l'autre prise. Deux refus à des dates différentes sont plus parlants qu'un seul.",
-  "src": "Logique de l'app"
+  "id": "avant-borne",
+  "q": "Avant d'investir dans une borne à domicile, que faire ?",
+  "a": "1) Identifier le réseau (compteur, EAN, gestionnaire). 2) Si c'est du 3×230 V, considérer que la Smart 22 kW risque de refuser sans neutre pur. 3) Essayer d'abord en conditions réelles, par exemple avec un transformateur ou une borne prêtés, avant d'acheter. 4) Demander au vendeur par écrit si la borne fonctionne en 3×230 V et en l'absence de neutre. 5) Notifier la borne au gestionnaire (obligatoire à Bruxelles). 6) Garder en tête les autres options : recharge sur bornes publiques en 400 V + N (voir la carte), ou conversion du bâtiment en 400 V + N demandée au gestionnaire, aux frais du demandeur.",
+  "src": "Sibelga SIB23 §4.4, §5.1",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
-  "id": "refus",
-  "q": "Ma voiture refuse de charger : que faire ?",
-  "a": "Vérifier que la prise et le câble sont bien enclenchés, essayer un autre point de charge ou une autre borne, noter l'heure, l'opérateur et le message affiché, puis enregistrer un relevé dans l'app. Ne pas insister à répétition : plusieurs tentatives de suite n'apportent pas d'information en plus.",
-  "src": "Bon sens pratique"
- },
- {
-  "id": "limites",
-  "q": "Cette app remplace-t-elle l'avis d'un professionnel ?",
-  "a": "Non. Elle rassemble des relevés d'utilisateurs et des informations publiques. Pour toute décision sur une installation (borne, transformateur, mesures), l'avis d'un électricien agréé et du gestionnaire de réseau prime. N'ouvrez jamais un tableau électrique ni un compteur pour « tester ».",
-  "src": "—"
- },
- {
-  "id": "protocole",
-  "q": "Comment faire un essai utile en une minute ?",
-  "a": "1) Branchez, attendez deux minutes. 2) Appuyez sur « Ça charge » ou « Ne charge pas » : l'app prend la position GPS et retrouve la borne sur la carte OpenStreetMap. 3) En cas de refus, un seul nouvel essai, sur l'autre prise si elle existe.",
-  "src": "Protocole simplifié"
- },
- {
-  "id": "borne-rue",
-  "q": "La borne publique suit-elle le réseau de ma rue ?",
-  "a": "Pas forcément. Une borne peut être alimentée par une cabine bitension (76 % des cabines bruxelloises selon Brugel) ou par une cabine privée (supermarché, par exemple). La zone du gestionnaire n'est qu'un indice : c'est pourquoi les relevés comptent plus que les estimations.",
-  "src": "Brugel, étude 32 (2020)"
+  "id": "solution-bruxelles",
+  "q": "Existe-t-il une solution à Bruxelles ?",
+  "a": "charge.brussels (un des opérateurs de bornes publiques) indique que la Zoé et la smart ForTwo ont besoin d'un neutre, que celui-ci n'est pas disponible partout à Bruxelles, et propose deux pastilles : verte (22 kW, 3×400 V + N : compatible) et blanche (7,2 kW, 1×230 V : non compatible). On ne sait pas encore si ces pastilles sont posées sur les bornes ni comment elles sont attribuées. Page : charge.brussels/fr_BE/howtocharge",
+  "src": "charge.brussels",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "conforme",
   "q": "Mon installation est conforme : pourquoi ça ne charge pas ?",
   "a": "La conformité porte sur la sécurité (terre, différentiels, protections), pas sur la présence d'un neutre. Une installation parfaitement conforme alimentée en 3×230 V n'a pas de neutre. C'est l'alimentation du réseau, pas la qualité de l'installation, qui est en cause dans l'hypothèse de travail.",
-  "src": "Belix Group ; Sibelga SIB23"
+  "src": "Belix Group ; Sibelga SIB23",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "demander",
   "q": "Que demander au vendeur ou au constructeur ?",
   "a": "Par écrit : le critère exact de tension entre neutre et terre du chargeur, la compatibilité avec les réseaux 3×230 V sans neutre, une note technique et une solution. Conservez les réponses : elles manquent aujourd'hui.",
-  "src": "Logique du projet"
+  "src": "Logique du projet",
+  "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
   "id": "continu",
   "q": "Puis-je charger en courant continu (bornes rapides) ?",
   "a": "La Smart EQ ne charge qu'en courant alternatif : les bornes rapides en courant continu ne lui servent pas. L'app n'affiche pas ces bornes.",
-  "src": "Logique de l'app"
+  "src": "Logique de l'app",
+  "sec": "Le problème : réseaux, bornes et voitures"
+ },
+ {
+  "id": "borne-rue",
+  "q": "La borne publique suit-elle le réseau de ma rue ?",
+  "a": "Pas forcément. Une borne peut être alimentée par une cabine bitension (76 % des cabines bruxelloises selon Brugel) ou par une cabine privée (supermarché, par exemple). La zone du gestionnaire n'est qu'un indice : c'est pourquoi les relevés comptent plus que les estimations.",
+  "src": "Brugel, étude 32 (2020)",
+  "sec": "Le problème : réseaux, bornes et voitures"
+ },
+ {
+  "id": "hexagone-ue",
+  "q": "L'hexagone « C » sur la borne garantit-il que ma voiture chargera ?",
+  "a": "Non. Cette étiquette européenne indique le type de prise (courant alternatif, type 2). Elle ne dit rien sur le réseau électrique derrière la borne (3×230 V sans neutre ou 3×400 V + neutre), qui est la cause des refus.",
+  "src": "Règlement européen sur l'étiquetage des bornes (information générale)",
+  "sec": "Le problème : réseaux, bornes et voitures"
+ },
+ {
+  "id": "pastilles-bruxelles",
+  "q": "Les pastilles vertes ou blanches sur les bornes de Bruxelles : que signifient-elles ?",
+  "a": "Certaines bornes charge.brussels portent une pastille de compatibilité, mais la signification exacte n'est pas documentée dans cette application : ne la prenez pas pour une garantie. Une borne sans pastille (par exemple une borne flamande TotalEnergies) n'est pas pour autant incompatible. Si vous voyez une pastille, photographiez-la : cela aidera à la documenter.",
+  "src": "Observations de terrain ; non confirmé par l'exploitant",
+  "sec": "Le problème : réseaux, bornes et voitures"
+ },
+ {
+  "id": "refus",
+  "q": "Ma voiture refuse de charger : que faire ?",
+  "a": "Vérifier que la prise et le câble sont bien enclenchés, essayer un autre point de charge ou une autre borne, noter l'heure, l'opérateur et le message affiché, puis enregistrer un relevé dans l'app. Ne pas insister à répétition : plusieurs tentatives de suite n'apportent pas d'information en plus.",
+  "src": "Bon sens pratique",
+  "sec": "Le problème : réseaux, bornes et voitures"
+ },
+ {
+  "id": "temoin",
+  "q": "Un refus prouve-t-il que la borne est incompatible ?",
+  "a": "Non. Une borne en panne ou un câble défectueux peuvent aussi donner un refus. Si possible, refaites un essai sur l'autre prise. Deux refus à des dates différentes sont plus parlants qu'un seul.",
+  "src": "Logique de l'app",
+  "sec": "Le problème : réseaux, bornes et voitures"
+ },
+ {
+  "id": "protocole",
+  "q": "Comment faire un essai utile en une minute ?",
+  "a": "1) Branchez, attendez deux minutes. 2) Appuyez sur « Ça charge » ou « Ne charge pas » : l'app prend la position GPS et retrouve la borne sur la carte OpenStreetMap. 3) En cas de refus, un seul nouvel essai, sur l'autre prise si elle existe.",
+  "src": "Protocole simplifié",
+  "sec": "L'application : cartes, relevés et données"
+ },
+ {
+  "id": "statuts",
+  "q": "Que signifient les couleurs et les zones dans l'app ?",
+  "a": "Vert : des utilisateurs de ces voitures ont chargé sans problème. Rouge : la voiture n'a pas chargé. Orange : essais opposés, c'est-à-dire au moins un essai réussi et au moins un refus sur la même borne (à retenter). Gris : pas encore essayée (vert pâle ou rose pâle : estimation d'après les relevés voisins). Les zones colorées sont des estimations expérimentales, calculées à partir des relevés proches et de la zone du gestionnaire de réseau (Sibelga, Fluvius, ORES) : aucune garantie. Plus il y a de relevés, plus c'est fiable ; un refus isolé parmi de nombreux succès ne change pas la couleur (à partir de 5 relevés). Une pastille verte n'est pas une garantie : même en 3×400 V, la tension entre la terre locale et le neutre peut varier. Gardez toujours une marge de batterie et ne comptez jamais sur une seule borne.",
+  "src": "Logique de l'app",
+  "sec": "L'application : cartes, relevés et données"
+ },
+ {
+  "id": "puissance-variable",
+  "q": "Pourquoi la puissance affichée varie-t-elle ?",
+  "a": "La puissance indiquée sur la fiche vient de la base OpenStreetMap quand elle existe (environ une borne sur cinq) : c'est la puissance nominale, pas ce que votre voiture recevra. Beaucoup de bornes pratiquent la « charge intelligente » : la vitesse varie et la charge peut être brièvement interrompue puis reprendre. Si vous notez une puissance, indiquez le maximum vu.",
+  "src": "OpenStreetMap ; observation de terrain",
+  "sec": "L'application : cartes, relevés et données"
+ },
+ {
+  "id": "etats-bornes",
+  "q": "À quoi servent « En panne », « Occupée », « File d'attente » et « Libre » ?",
+  "a": "Ce sont des informations pratiques, sans effet sur le verdict de compatibilité. Une panne reste affichée trois jours, les autres états quelques heures, puis disparaissent d'eux-mêmes. Un relevé « Ça charge » plus récent efface une panne. Ce n'est pas de la disponibilité en temps réel : seuls les signalements des utilisateurs de l'application sont comptés.",
+  "src": "",
+  "sec": "L'application : cartes, relevés et données"
+ },
+ {
+  "id": "declare-non-teste",
+  "q": "Que veut dire « déclaré, non vérifié » (anneau en pointillés) ?",
+  "a": "Quelqu'un vous a dit qu'une borne fonctionne ou non, ou vous l'avez testée mais n'êtes plus sur place. Un témoignage d'un tiers est affiché à part, avec un anneau en pointillés, et ne change jamais le verdict : seuls les essais réels comptent. Votre propre essai passé se déclare comme un relevé « à distance » avec sa date.",
+  "src": "",
+  "sec": "L'application : cartes, relevés et données"
+ },
+ {
+  "id": "borne-absente",
+  "q": "La borne n'est pas sur la carte : que faire ?",
+  "a": "La liste vient d'OpenStreetMap (extraction du 17/11/2026) et peut être incomplète ou datée. Placez-vous près de la borne et appuyez sur « Ça charge » ou « Ne charge pas » : l'application propose « Nouvelle borne à ma position ». Vous pouvez aussi corriger OpenStreetMap vous-même.",
+  "src": "OpenStreetMap, licence ODbL",
+  "sec": "L'application : cartes, relevés et données"
  },
  {
   "id": "donnees",
   "q": "Que deviennent mes relevés ?",
   "a": "Chaque relevé est enregistré sur votre téléphone, puis partagé pour que la carte soit commune. Sont envoyés : la borne (nom et position de la borne), le résultat, la date, le modèle de voiture et un identifiant aléatoire du téléphone, utilisé seulement contre les abus et non visible des autres. Jamais votre nom, votre plaque ni votre trajet. Attention : si vous ajoutez une nouvelle borne, sa position exacte est partagée ; décochez « Partager » pour une borne privée ou à domicile. Après chaque relevé, vous avez 8 secondes pour l'annuler avant l'envoi. Un relevé déjà envoyé ne peut pas être effacé par l'app. Autres flux : à chaque relevé, la position de la borne est envoyée aux serveurs OpenStreetMap (Overpass) pour retrouver son nom ; votre adresse IP est vue par ces serveurs, par Supabase (base hébergée en Irlande, UE), par OpenFreeMap et, en repli, par les tuiles OpenStreetMap. Les relevés sont conservés sans durée limite fixée à ce jour. Données : © contributeurs OpenStreetMap (ODbL), Bruxelles Mobilité (CC BY).",
-  "src": "Fonctionnement de l'app"
+  "src": "Fonctionnement de l'app",
+  "sec": "L'application : cartes, relevés et données"
+ },
+ {
+  "id": "donnees-licences",
+  "q": "D'où viennent les données et sous quelle licence ?",
+  "a": "Les emplacements de bornes viennent d'OpenStreetMap (© contributeurs OpenStreetMap, licence ODbL). Les relevés et signalements de la communauté sont propres à l'application. Détails : lien « Licences des données » dans ⓘ.",
+  "src": "openstreetmap.org/copyright",
+  "sec": "L'application : cartes, relevés et données"
+ },
+ {
+  "id": "limites",
+  "q": "Cette app remplace-t-elle l'avis d'un professionnel ?",
+  "a": "Non. Elle rassemble des relevés d'utilisateurs et des informations publiques. Pour toute décision sur une installation (borne, transformateur, mesures), l'avis d'un électricien agréé et du gestionnaire de réseau prime. N'ouvrez jamais un tableau électrique ni un compteur pour « tester ».",
+  "src": "—",
+  "sec": "L'application : cartes, relevés et données"
  },
  {
   "id": "glossaire",
   "q": "Glossaire : IT, TT, TN, N, PE…",
   "a": "Réseau et terre\n• IT, TT, TN : manières de relier le réseau et l'installation à la terre. 1re lettre = côté distributeur (I : isolé ou relié par une impédance ; T : relié à la terre). 2e lettre = côté installation (T : terre propre ; N : terre reprise sur le neutre).\n• TT : neutre à la terre, avec un piquet de terre propre.\n• TN : neutre à la terre, terre reprise sur le neutre.\n• L1, L2, L3 : les trois phases.\n• N : neutre, ramené au point central du transformateur.\n• PE : conducteur de terre.\n\nProtection et signaux\n• Différentiel (RCD) : protection contre les fuites ; type A ou B selon la forme du courant.\n• THD : taux de distorsion harmonique de la tension.\n• CP : signal de pilotage envoyé par la borne (courant maximal).\n\nRecharge\n• Mode 2 : câble avec boîtier sur une prise. Mode 3 : borne dédiée.\n• Type 2 : prise de recharge européenne.\n• AC : courant alternatif (bornes ordinaires). DC : courant continu (bornes rapides).\n• Caméléon : nom du chargeur Renault (voir « La Smart et la Zoé ont-elles le même chargeur ? »).\n\nUnités\n• V volt · A ampère · kW kilowatt · Ω ohm (résistance de terre) · mA milliampère (fuite).",
-  "src": "Glossaire de l'app"
+  "src": "Glossaire de l'app",
+  "sec": "Glossaire"
  }
 ]

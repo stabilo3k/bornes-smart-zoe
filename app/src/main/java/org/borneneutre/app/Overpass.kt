@@ -8,6 +8,7 @@ import java.net.URLEncoder
 /** Bornes de recharge OpenStreetMap autour de la position GPS (données © contributeurs OpenStreetMap, ODbL). */
 object Overpass {
     private val ENDPOINTS = listOf(
+        "https://lz4.overpass-api.de/api/interpreter",
         "https://overpass-api.de/api/interpreter",
         "https://overpass.private.coffee/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter"
@@ -17,7 +18,7 @@ object Overpass {
     @Volatile var lastError: String = ""
 
     fun query(lat: Double, lon: Double, radiusM: Int): String =
-        "[out:json][timeout:25];nwr(around:$radiusM,$lat,$lon)[\"amenity\"=\"charging_station\"];out center tags;"
+        "[out:json][timeout:15];nwr(around:$radiusM,$lat,$lon)[\"amenity\"=\"charging_station\"];out center tags;"
 
     /** Extrait les bornes d'une réponse Overpass ; les éléments sans coordonnées sont ignorés. */
     fun parse(json: String): List<Station> {
@@ -50,7 +51,7 @@ object Overpass {
             val host = ep.substringAfter("//").substringBefore("/")
             try {
                 val c = URL(ep).openConnection() as HttpURLConnection
-                c.requestMethod = "POST"; c.connectTimeout = 8000; c.readTimeout = 30000; c.doOutput = true
+                c.requestMethod = "POST"; c.connectTimeout = 5000; c.readTimeout = 12000; c.doOutput = true
                 c.setRequestProperty("User-Agent", "BorneNeutre/1.0 (Android)")
                 c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 c.setRequestProperty("Accept", "application/json")
@@ -90,9 +91,22 @@ object Overpass {
         return null
     }
 
+    /** Bornes de `found` qui ne sont pas à moins de `maxM` mètres d'une borne de `known` (doublons écartés ; index en grille pour les longues listes). */
+    fun dedupe(known: List<Station>, found: List<Station>, maxM: Double = 25.0): List<Station> {
+        val step = 0.0006
+        val grid = HashMap<Long, MutableList<Station>>()
+        fun cell(lat: Double, lon: Double) = Math.floor(lat / step).toLong() to Math.floor(lon / step).toLong()
+        fun key(y: Long, x: Long) = y * 1_000_003L + x
+        known.forEach { val (y, x) = cell(it.lat, it.lon); grid.getOrPut(key(y, x)) { ArrayList() }.add(it) }
+        return found.filter { f ->
+            val (cy, cx) = cell(f.lat, f.lon)
+            !(-1L..1L).any { dy -> (-1L..1L).any { dx -> grid[key(cy + dy, cx + dx)]?.any { Geo.distanceM(f.lat, f.lon, it.lat, it.lon) < maxM } == true } }
+        }
+    }
+
     /** Bornes candidates triées par distance ; les bornes OSM à moins de 25 m d'une borne déjà connue sont écartées (doublons). */
     fun candidates(lat: Double, lon: Double, known: List<Station>, found: List<Station>, maxM: Double): List<Pair<Station, Double>> {
-        val all = known + found.filter { f -> known.none { Geo.distanceM(f.lat, f.lon, it.lat, it.lon) < 25 } }
+        val all = known + dedupe(known, found)
         return all.filter { it.current != "DC" }
             .map { it to Geo.distanceM(lat, lon, it.lat, it.lon) }
             .filter { it.second <= maxM }

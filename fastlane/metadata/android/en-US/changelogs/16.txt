@@ -1,0 +1,2 @@
+Charge point sheets (number of units, sockets, power), add a missing charge point, report breakdowns remotely, zoomable FAQ images, FAQ sections, longer diagnostic log, battery emergency with estimates, faster online search.
+ Warn the operator: support phone entered by users and operator contact pages. Flemish charge points (open data); 'Warn the operator' hidden for private stations.

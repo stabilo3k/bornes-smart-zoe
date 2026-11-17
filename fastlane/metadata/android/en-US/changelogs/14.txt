@@ -1,0 +1,1 @@
+Charge point sheets (number of units, sockets, power), add a missing charge point, report breakdowns remotely, zoomable FAQ images, FAQ sections, longer diagnostic log, battery emergency with estimates, faster online search.

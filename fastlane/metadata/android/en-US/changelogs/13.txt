@@ -1,0 +1,1 @@
+Built-in offline list of Belgian charge points (OpenStreetMap), power, access and opening hours on the station card, "broken / busy / queue / free" states, "declared, unverified" reports, Battery emergency button, ready-made message to warn the operator, extended FAQ.

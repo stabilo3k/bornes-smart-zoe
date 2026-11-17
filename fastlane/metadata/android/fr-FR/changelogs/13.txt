@@ -1,0 +1,1 @@
+Liste de bornes de Belgique intégrée (hors ligne, OpenStreetMap), puissance, accès et horaires sur la fiche, états « en panne / occupée / file / libre », signalement « déclaré, non vérifié », bouton Urgence batterie, message prêt pour prévenir l'exploitant, FAQ complétée.

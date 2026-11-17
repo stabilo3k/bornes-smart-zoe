@@ -1,0 +1,2 @@
+Fiches de borne (nombre de bornes, prises, puissance), ajout d'une borne absente de la carte, panne signalable à distance, images FAQ agrandissables, FAQ par sections, journal plus long, urgence batterie avec estimation, recherche en ligne plus rapide.
+ Prévenir l'exploitant : téléphone d'assistance saisi par les utilisateurs et page de contact des exploitants.
