@@ -15,9 +15,7 @@ Application Android gratuite, libre et sans publicité : les conducteurs de **Sm
 
 Contexte : une partie du réseau belge est en 3×230 V sans neutre. Certaines voitures refusent alors de charger. Aucune base publique n'indique le neutre ; l'information vient des essais des conducteurs.
 
-État : version 1.0.6 (fiches de borne, pannes et états, urgence batterie, liste de bornes de Belgique intégrée, bornes de Flandre en données ouvertes).
-
-Version 1.0-rc1 : deux gros boutons, « Ça charge » / « Ne charge pas ». L'app prend la position GPS (compteur visible), retrouve la borne (bornes connues, puis OpenStreetMap via Overpass, sinon nouvelle borne), demande confirmation et enregistre ; annulation possible 8 secondes avant l'envoi. Voiture par défaut : Smart EQ fortwo ; liste fermée : Smart EQ fortwo/forfour, Renault Zoé, Renault Twingo électrique. Carte colorée, zones estimées (expérimentales), relevés partagés anonymes (Supabase : `docs/supabase.sql`, `docs/supabase-v2.sql`), FAQ, écran « À propos ».
+État : version 1.1.0. Deux gros boutons, « Ça charge » / « Ne charge pas » ; l'app prend la position GPS, retrouve la borne (listes intégrées de Belgique et de Bruxelles, données ouvertes flamandes, OpenStreetMap), demande confirmation et enregistre, avec annulation possible pendant 8 secondes. Voitures (liste fermée de sept modèles) : Smart EQ fortwo/forfour, Renault Zoé, Twingo électrique, Kangoo E-Tech, Nissan Townstar, Mercedes eCitan. Carte colorée, fiches de borne (adresse, source, points, prises, téléphone d'assistance), pannes et états, urgence batterie, FAQ sourcée, écran « À propos », mise à jour mensuelle des listes de bornes (dossier `data/`). Relevés partagés anonymes sur un serveur Supabase : installation décrite dans `docs/LISEZ-MOI-SQL.md`. Si le serveur s'arrête, l'application continue de fonctionner hors ligne.
 
 Licence : GPL-3.0-or-later (fichier `LICENSE`). Compilation : `gradle assembleRelease` (Gradle 8+, pas de wrapper dans le dépôt) ; la signature de publication se passe par `-PBN_KEYSTORE=... -PBN_PROPS=...` (clé hors dépôt).
 
