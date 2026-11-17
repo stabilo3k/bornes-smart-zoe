@@ -201,6 +201,14 @@ fun App() {
     var showUrgence by remember { mutableStateOf(false) }
     var fetchedOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
     var embeddedOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
+    var bxStations by remember { mutableStateOf<List<Station>>(emptyList()) }
+    LaunchedEffect(Unit) { bxStations = withContext(Dispatchers.Default) { Brussels.loadEmbedded(ctx) } }
+    LaunchedEffect(Unit) {
+        if (DataUpdate.due(ctx)) {
+            val (changed, _) = withContext(Dispatchers.IO) { DataUpdate.update(ctx) }
+            if (changed) { embeddedOsm = withContext(Dispatchers.Default) { Store.loadEmbeddedOsm(ctx) }; bxStations = withContext(Dispatchers.Default) { Brussels.loadEmbedded(ctx) } }
+        }
+    }
     LaunchedEffect(Unit) { embeddedOsm = withContext(Dispatchers.Default) { Store.loadEmbeddedOsm(ctx) } }
     val osmStations = remember(fetchedOsm, embeddedOsm) { (fetchedOsm + embeddedOsm).distinctBy { it.id } }
     var commuStations by remember { mutableStateOf<List<Station>>(emptyList()) }
@@ -237,7 +245,7 @@ fun App() {
     var flStations by remember { mutableStateOf<List<Station>>(emptyList()) }
     var loadingScreen by remember { mutableStateOf(false) }
 
-    val baseAll = remember(stations, osmStations, flStations) { val b = stations + Overpass.dedupe(stations, osmStations); (b + Overpass.dedupe(b, flStations)).filter { it.current != "DC" } }
+    val baseAll = remember(stations, osmStations, flStations, bxStations) { val b = stations + Overpass.dedupe(stations, osmStations); val b2 = b + Overpass.dedupe(b, flStations); (b2 + Overpass.dedupe(b2, bxStations)).filter { it.current != "DC" } }
     val visible = remember(baseAll, mode, screenOsm, cacheOsm, myPos, releves, byId) {
         fun withOsm(): List<Station> = baseAll + Overpass.dedupe(baseAll, (screenOsm + cacheOsm).distinctBy { it.id }).filter { it.current != "DC" }
         when (mode) {
@@ -645,7 +653,7 @@ fun App() {
 
     if (showCar) CarDialog(myCar, onDismiss = { showCar = false }) { c -> myCar = c; Store.saveCar(ctx, c); showCar = false }
 
-    if (showAbout) AboutDialog(onDismiss = { showAbout = false })
+    if (showAbout) AboutDialog(onDismiss = { showAbout = false }, onListsUpdated = { scope.launch { embeddedOsm = withContext(Dispatchers.Default) { Store.loadEmbeddedOsm(ctx) }; bxStations = withContext(Dispatchers.Default) { Brussels.loadEmbedded(ctx) } } })
 
     selectedId?.let { byId[it] }?.let { sel ->
         if (showEtat) EtatDialog(sel, myCar, onDismiss = { showEtat = false },
@@ -708,7 +716,9 @@ fun StationCard(s: Station, releves: List<Releve>, myCar: String, etatLines: Lis
             if (s.operator.isNotBlank()) Text(s.operator, fontSize = 12.sp, color = Color.Gray)
             Text(st.label, color = Color(android.graphics.Color.parseColor(st.color)), style = MaterialTheme.typography.titleSmall)
             Text(StationInfo.powerLabel(s, fiche?.kw, mine.mapNotNull { it.kw }.maxOrNull()), fontSize = 12.sp)
-            (Fiches.describe(fiche?.points, fiche?.plugs) ?: StationInfo.osmPoints(s)?.let { "${it} point${if (it > 1) "s" else ""} de charge (OpenStreetMap)" })?.let { Text("🔌 $it", fontSize = 12.sp) }
+            (Fiches.describe(fiche?.points, fiche?.plugs) ?: StationInfo.osmPoints(s)?.let { "${it} point${if (it > 1) "s" else ""} de charge (${StationInfo.sourceLabel(s) ?: "source ouverte"})" })?.let { Text("🔌 $it", fontSize = 12.sp) }
+            StationInfo.address(s)?.let { Text("📍 $it", fontSize = 12.sp) }
+            StationInfo.phases(s)?.let { Text("⚡ Courant alternatif $it (selon la source)", fontSize = 12.sp) }
             StationInfo.accessLabel(s)?.let { Text("🔒 $it", fontSize = 12.sp, color = Color(0xFFB45309)) }
             StationInfo.openingHours(s)?.let { Text("Horaires : $it", fontSize = 12.sp, color = Color.Gray) }
             etatLines.forEach { l ->
@@ -808,8 +818,11 @@ fun ConfirmDialog(p: Pending, car: String, onDismiss: () -> Unit, onConfirm: (St
 }
 
 @Composable
-fun AboutDialog(onDismiss: () -> Unit) {
+fun AboutDialog(onDismiss: () -> Unit, onListsUpdated: () -> Unit = {}) {
     val ctx = LocalContext.current
+    val aScope = rememberCoroutineScope()
+    var updMsg by remember { mutableStateOf("") }
+    var updBusy by remember { mutableStateOf(false) }
     var showLog by remember { mutableStateOf(false) }
     if (showLog) {
         var txt by remember { mutableStateOf(DiagLog.text()) }
@@ -837,7 +850,9 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Text("Cette application rassemble des relevés d'utilisateurs. Elle ne donne aucune garantie : une borne qui a chargé une fois peut refuser ensuite, et inversement. Elle ne remplace pas l'avis d'un électricien ni celui du constructeur. Ne modifiez jamais votre installation électrique sans un professionnel qualifié.", fontSize = 13.sp)
                 Text("Vos relevés (borne, résultat, date, modèle de voiture) sont partagés anonymement : ni nom, ni plaque, ni trajet. Voir la FAQ « Que deviennent mes relevés ? ».", fontSize = 13.sp)
                 Text("Projet indépendant, non affilié à Renault ni à Mercedes-Benz / smart. Cartes © contributeurs OpenStreetMap, fond OpenFreeMap.", fontSize = 12.sp)
-                Text("Liste de bornes embarquée : © contributeurs OpenStreetMap (licence ODbL), extraite le $OSM_LIST_DATE. Bornes de Flandre : données ouvertes du Departement Mobiliteit en Openbare Werken (source Eco-Movement), licence Open Data Vlaanderen. Les relevés et signalements de la communauté sont des données propres à l'application.", fontSize = 12.sp)
+                Text("Liste de bornes embarquée : © contributeurs OpenStreetMap (licence ODbL), extraite le ${DataUpdate.currentDate(ctx)}. Bornes de Flandre : données ouvertes du Departement Mobiliteit en Openbare Werken (source Eco-Movement), licence Open Data Vlaanderen. Bornes de Bruxelles : données ouvertes de Bruxelles Mobilité (source Paradigm / Eco-Movement), licence CC BY. Les relevés et signalements de la communauté sont des données propres à l'application.", fontSize = 12.sp)
+                TextButton(enabled = !updBusy, onClick = { updBusy = true; updMsg = "Vérification…"; aScope.launch { val (ch, m) = withContext(Dispatchers.IO) { DataUpdate.update(ctx) }; updMsg = m; updBusy = false; if (ch) onListsUpdated() } }) { Text("Mettre à jour les listes de bornes maintenant") }
+                if (updMsg.isNotEmpty()) Text(updMsg, fontSize = 12.sp)
                 TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe/blob/main/DATA-LICENCE.md"))) }) { Text("Licences des données") }
                 TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe"))) }) { Text("Code source et signalement d'un problème") }
                 TextButton(onClick = { showLog = true }) { Text("Journal de diagnostic") }

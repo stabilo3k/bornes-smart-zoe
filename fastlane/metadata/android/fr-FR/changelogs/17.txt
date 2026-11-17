@@ -1,0 +1,1 @@
+Adresse et source affichées sur la fiche de borne. Bornes de Bruxelles (données ouvertes Bruxelles Mobilité, CC BY). Mise à jour mensuelle des listes de bornes depuis GitHub, avec bouton « Mettre à jour maintenant » dans À propos.

@@ -135,6 +135,22 @@ class FlandersTest {
         org.junit.Assert.assertEquals(22.0, StationInfo.powerKw(l[0])!!, 0.01)
         org.junit.Assert.assertEquals(2, StationInfo.osmPoints(l[0]))
         org.junit.Assert.assertEquals("AC", l[0].current)
+        org.junit.Assert.assertEquals("Industrielaan 18", StationInfo.address(l[0]))
+        org.junit.Assert.assertEquals("Open Data Vlaanderen / Eco-Movement", StationInfo.sourceLabel(l[0]))
         org.junit.Assert.assertEquals(1, Flanders.fromJson(Flanders.toJson(l)).size)
+    }
+}
+
+class BrusselsTest {
+    @org.junit.Test fun parsesCompactList() {
+        val j = """{"stations":[{"i":"abc","o":"EnergyVision","la":50.8334,"lo":4.303,"p":2,"c":"AC_1_PHASE;AC_3_PHASE","t":"UNKNOWN"},{"i":"d","o":"X","la":50.9,"lo":4.4,"p":1,"c":"DC","t":"ON_STREET"}]}"""
+        val l = Brussels.parse(j)
+        org.junit.Assert.assertEquals(2, l.size)
+        org.junit.Assert.assertEquals("bx-abc", l[0].id)
+        org.junit.Assert.assertEquals("AC", l[0].current)
+        org.junit.Assert.assertEquals("DC", l[1].current)
+        org.junit.Assert.assertEquals("monophasé et triphasé", StationInfo.phases(l[0]))
+        org.junit.Assert.assertEquals(2, StationInfo.osmPoints(l[0]))
+        org.junit.Assert.assertEquals(Brussels.SOURCE, StationInfo.sourceLabel(l[0]))
     }
 }

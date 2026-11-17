@@ -1,0 +1,1 @@
+Address and data source on the charge-point card. Brussels charge points (Brussels Mobility open data, CC BY). Monthly charge-point list updates from GitHub, with an Update now button in About.

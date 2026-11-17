@@ -86,7 +86,7 @@ object Store {
 
     /** Liste des bornes OpenStreetMap de Belgique embarquée (hors ligne ; © contributeurs OpenStreetMap, ODbL) ; vide si le fichier est illisible. */
     fun loadEmbeddedOsm(ctx: Context): List<Station> = try {
-        Overpass.parse(ctx.assets.open("bornes-be-osm.json").bufferedReader().readText())
+        Overpass.parse((DataUpdate.localFile(ctx, DataUpdate.OSM_FILE)?.readText()) ?: ctx.assets.open("bornes-be-osm.json").bufferedReader().readText())
     } catch (e: Exception) {
         emptyList()
     }
@@ -233,6 +233,25 @@ object StationInfo {
         "private" -> "Accès privé"
         "permissive" -> "Accès toléré"
         "semipublic" -> "Semi-public (horaires limités)"
+        else -> null
+    }
+
+    fun phases(s: Station): String? = tags(s).optString("phases", "").takeIf { it.isNotBlank() }
+
+    /** Adresse d'après les étiquettes (OpenStreetMap : addr:*, Flandre : addr:full), ou null. */
+    fun address(s: Station): String? {
+        val t = tags(s)
+        t.optString("addr:full", "").takeIf { it.isNotBlank() }?.let { return it }
+        val street = listOf(t.optString("addr:street", ""), t.optString("addr:housenumber", "")).filter { it.isNotBlank() }.joinToString(" ")
+        val city = listOf(t.optString("addr:postcode", ""), t.optString("addr:city", "")).filter { it.isNotBlank() }.joinToString(" ")
+        return listOf(street, city).filter { it.isNotBlank() }.joinToString(", ").ifBlank { null }
+    }
+
+    /** Origine de la fiche, d'après l'identifiant : liste OpenStreetMap, données ouvertes flamandes ; null pour les bornes de la communauté. */
+    fun sourceLabel(s: Station): String? = when {
+        s.id.startsWith("fl-") -> "Open Data Vlaanderen / Eco-Movement"
+        s.id.startsWith("bx-") -> Brussels.SOURCE
+        s.id.startsWith("osm-") -> "OpenStreetMap"
         else -> null
     }
 
