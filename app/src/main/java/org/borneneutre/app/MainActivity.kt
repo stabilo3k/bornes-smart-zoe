@@ -214,11 +214,16 @@ fun App() {
     var commuStations by remember { mutableStateOf<List<Station>>(emptyList()) }
     var commuReleves by remember { mutableStateOf<List<Releve>>(emptyList()) }
     val stations = remember(userStations, commuStations, allFiches, osmStations) {
-        val s0 = (seedStations + userStations).let { base -> base + commuStations.filter { c -> base.none { it.id == c.id } } }
+        val osmIds = osmStations.map { it.id }.toSet()
+        val s0 = (seedStations + userStations).let { base -> base + commuStations.filter { c -> c.id !in osmIds && base.none { it.id == c.id } } }
         s0 + Fiches.extraStations(allFiches, (s0 + osmStations).map { it.id }.toSet())
     }
     val releves = remember(userReleves, commuReleves) { seedReleves + userReleves + commuReleves }
-    val byId = remember(stations, osmStations) { (osmStations + stations).associateBy { it.id } }
+    var screenOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
+    var cacheOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
+    var flStations by remember { mutableStateOf<List<Station>>(emptyList()) }
+    val otherSources = remember(flStations, bxStations, screenOsm, cacheOsm) { flStations + bxStations + screenOsm + cacheOsm }
+    val byId = remember(stations, osmStations, otherSources) { (otherSources + osmStations + stations).associateBy { it.id } }
     var myCar by remember { mutableStateOf(Store.loadCar(ctx)) }
 
     val ev = remember(releves, byId) { Estimation.evidenceFrom(releves, byId) }
@@ -240,9 +245,6 @@ fun App() {
     var mode by remember { mutableStateOf(prefs.getInt("display_mode", 0)) }
     var autoRefresh by remember { mutableStateOf(prefs.getBoolean("auto_refresh", false)) }
     var showModes by remember { mutableStateOf(false) }
-    var screenOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
-    var cacheOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
-    var flStations by remember { mutableStateOf<List<Station>>(emptyList()) }
     var loadingScreen by remember { mutableStateOf(false) }
 
     val baseAll = remember(stations, osmStations, flStations, bxStations) { val b = stations + Overpass.dedupe(stations, osmStations); val b2 = b + Overpass.dedupe(b, flStations); (b2 + Overpass.dedupe(b2, bxStations)).filter { it.current != "DC" } }
@@ -334,14 +336,14 @@ fun App() {
             val ll = LatLng(loc.latitude, loc.longitude)
             myPos = ll
             map?.animateCamera(CameraUpdateFactory.newLatLngZoom(ll, 17.0))
-            val known = Overpass.candidates(loc.latitude, loc.longitude, stations, osmStations, 150.0)
+            val known = Overpass.candidates(loc.latitude, loc.longitude, stations, osmStations + otherSources, 150.0)
             pending = Pending(result, loc.latitude, loc.longitude, known, 1)
             scope.launch {
                 val job = async(Dispatchers.IO) { Overpass.fetch(loc.latitude, loc.longitude, 200) }
                 val found = withTimeoutOrNull(10_000) { job.await() }
                 if (reportToken != token) return@launch
                 if (found != null) fetchedOsm = (fetchedOsm + found).distinctBy { it.id }
-                val cands = Overpass.candidates(loc.latitude, loc.longitude, stations, osmStations, 150.0)
+                val cands = Overpass.candidates(loc.latitude, loc.longitude, stations, osmStations + (found ?: emptyList()) + otherSources, 150.0)
                 pending = pending?.copy(candidates = cands, phase = 2)
             }
         }
@@ -746,7 +748,7 @@ fun StationCard(s: Station, releves: List<Releve>, myCar: String, etatLines: Lis
                 if (s.kind != "privee" && !s.id.startsWith("priv") && StationInfo.accessLabel(s) != "Accès privé") TextButton(onClick = onWarn) { Text("Prévenir l'exploitant") }
                 TextButton(onClick = {
                     val uri = Uri.parse("geo:${s.lat},${s.lon}?q=${s.lat},${s.lon}(${Uri.encode(s.name)})")
-                    ctx.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    ctx.safeStart(Intent(Intent.ACTION_VIEW, uri))
                 }) { Text("Itinéraire") }
                 TextButton(onClick = onClose) { Text("Fermer") }
             }
@@ -853,8 +855,8 @@ fun AboutDialog(onDismiss: () -> Unit, onListsUpdated: () -> Unit = {}) {
                 Text("Liste de bornes embarquée : © contributeurs OpenStreetMap (licence ODbL), extraite le ${DataUpdate.currentDate(ctx)}. Bornes de Flandre : données ouvertes du Departement Mobiliteit en Openbare Werken (source Eco-Movement), licence Open Data Vlaanderen. Bornes de Bruxelles : données ouvertes de Bruxelles Mobilité (source Paradigm / Eco-Movement), licence CC BY. Les relevés et signalements de la communauté sont des données propres à l'application.", fontSize = 12.sp)
                 TextButton(enabled = !updBusy, onClick = { updBusy = true; updMsg = "Vérification…"; aScope.launch { val (ch, m) = withContext(Dispatchers.IO) { DataUpdate.update(ctx) }; updMsg = m; updBusy = false; if (ch) onListsUpdated() } }) { Text("Mettre à jour les listes de bornes maintenant") }
                 if (updMsg.isNotEmpty()) Text(updMsg, fontSize = 12.sp)
-                TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe/blob/main/DATA-LICENCE.md"))) }) { Text("Licences des données") }
-                TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe"))) }) { Text("Code source et signalement d'un problème") }
+                TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe/blob/main/DATA-LICENCE.md"))) }) { Text("Licences des données") }
+                TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe"))) }) { Text("Code source et signalement d'un problème") }
                 TextButton(onClick = { showLog = true }) { Text("Journal de diagnostic") }
             }
         },

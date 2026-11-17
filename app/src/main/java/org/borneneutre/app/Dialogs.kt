@@ -131,10 +131,10 @@ fun WarnDialog(s: Station, phone: String?, onDismiss: () -> Unit) {
                     cm.setPrimaryClip(android.content.ClipData.newPlainText("message", msg))
                     Toast.makeText(ctx, "Message copié", Toast.LENGTH_SHORT).show()
                 }) { Text("Copier") }
-                TextButton(onClick = { ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, msg), "Partager")) }) { Text("Partager") }
+                TextButton(onClick = { ctx.safeStart(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, msg), "Partager")) }) { Text("Partager") }
                 val dial = phone ?: if (total) "0800 58 143" else null
-                if (dial != null) TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + dial.filter { c -> c.isDigit() || c == '+' }))) }) { Text("Appeler") }
-                if (op != null) TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(op.url))) }) { Text("Contact") }
+                if (dial != null) TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + dial.filter { c -> c.isDigit() || c == '+' }))) }) { Text("Appeler") }
+                if (op != null) TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(op.url))) }) { Text("Contact") }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Fermer") } }
@@ -163,7 +163,7 @@ fun UrgenceDialog(pos: org.maplibre.android.geometry.LatLng?, stations: List<Sta
                             Text(if (it.tried) it.status.label else "Pas encore essayée avec $car : à tenter", fontSize = 12.sp, color = Color(android.graphics.Color.parseColor(it.status.color)))
                             if (!it.tried) { val e = Estimation.estimate(it.station.lat, it.station.lon, ev, priors[it.station.id]); Text("Estimation : ${e.label} · ${e.zone.label}", fontSize = 12.sp, color = Color.DarkGray) }
                             Text(StationInfo.powerLabel(it.station, ficheKw[it.station.id], obsKw[it.station.id]) + (StationInfo.accessLabel(it.station)?.let { a -> " · 🔒 $a" } ?: ""), fontSize = 12.sp)
-                            TextButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${it.station.lat},${it.station.lon}?q=${it.station.lat},${it.station.lon}(${Uri.encode(it.station.name)})"))) }) { Text("Itinéraire") }
+                            TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${it.station.lat},${it.station.lon}?q=${it.station.lat},${it.station.lon}(${Uri.encode(it.station.name)})"))) }) { Text("Itinéraire") }
                         }
                     }
                 }
@@ -260,3 +260,8 @@ fun ImageZoomDialog(bmp: androidx.compose.ui.graphics.ImageBitmap, title: String
 
 private fun Modifier.androidx_pointer(onGesture: (Float, androidx.compose.ui.geometry.Offset) -> Unit): Modifier =
     this.pointerInput(Unit) { detectTransformGestures { _, pan, zoom, _ -> onGesture(zoom, pan) } }
+
+/** Lance une intention sans planter si aucune application ne la gère (cartes, téléphone, navigateur absents). */
+fun android.content.Context.safeStart(i: android.content.Intent) {
+    try { startActivity(i) } catch (e: Exception) { android.widget.Toast.makeText(this, "Aucune application disponible pour cette action.", android.widget.Toast.LENGTH_LONG).show() }
+}

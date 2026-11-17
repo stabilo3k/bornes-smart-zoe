@@ -1,0 +1,1 @@
+Fix: the card now opens on every displayed charge point (Flanders, Brussels), also offered by GPS. No crash when no maps or phone app is installed.

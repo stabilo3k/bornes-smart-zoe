@@ -1,0 +1,1 @@
+Correctif : la fiche s'ouvre maintenant sur toutes les bornes affichées (Flandre, Bruxelles), qui sont aussi proposées par le GPS. Pas de plantage sans application de cartes ou de téléphone.
