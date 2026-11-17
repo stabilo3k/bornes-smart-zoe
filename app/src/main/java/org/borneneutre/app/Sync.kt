@@ -63,7 +63,8 @@ object Sync {
             val sid = o.getString("station_id")
             if (sid !in knownStationIds && sid !in st)
                 st[sid] = Station(sid, o.optString("station_name", "Borne"), "", o.getDouble("lat"), o.getDouble("lon"), o.optString("current", "?"), "", "commu")
-            rl.add(Releve(cid, sid, o.optString("ts", ""), Result.valueOf(o.getString("result")), null, "", false, car, o.optBoolean("remote", false),
+            val res = runCatching { Result.valueOf(o.getString("result")) }.getOrNull() ?: continue // résultat inconnu : ligne ignorée
+            rl.add(Releve(cid, sid, o.optString("ts", ""), res, null, "", false, car, o.optBoolean("remote", false),
                 if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { !it.isNaN() } else null))
         }
         return Pair(st.values.toList(), rl)
@@ -241,7 +242,7 @@ object Sync {
             out.add(Fiche(o.getString("client_id"), o.getString("station_id"), o.optString("station_name", ""), o.optDouble("lat", 0.0), o.optDouble("lon", 0.0),
                 if (o.has("points") && !o.isNull("points")) o.optInt("points") else null, if (o.has("plugs") && !o.isNull("plugs")) o.optInt("plugs") else null,
                 if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { v -> !v.isNaN() } else null, ts,
-                o.optString("contact", "").ifBlank { null }))
+                Fiches.parsePhone(o.optString("contact", ""))))
         }
         return out
     }

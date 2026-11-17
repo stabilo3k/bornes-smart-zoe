@@ -24,7 +24,7 @@
  {
   "id": "autre-marque",
   "q": "Une autre voiture charge sans souci à la même borne : pourquoi pas la mienne ?",
-  "a": "Parce que chaque voiture a son propre chargeur embarqué, avec ses propres contrôles. Une voiture qui charge à une borne prouve que la borne fonctionne, pas que la vôtre sera acceptée. C'est pourquoi l'app ne retient que les relevés des quatre modèles de la liste, qui partagent ce comportement.",
+  "a": "Parce que chaque voiture a son propre chargeur embarqué, avec ses propres contrôles. Une voiture qui charge à une borne prouve que la borne fonctionne, pas que la vôtre sera acceptée. C'est pourquoi l'app ne retient que les relevés des sept modèles de la liste, qui partagent ce comportement.",
   "src": "Logique de l'app ; Brugel 2020",
   "sec": "Le problème : réseaux, bornes et voitures"
  },
@@ -96,8 +96,8 @@
  {
   "id": "solution-bruxelles",
   "q": "Existe-t-il une solution à Bruxelles ?",
-  "a": "charge.brussels (un des opérateurs de bornes publiques) indique que la Zoé et la smart ForTwo ont besoin d'un neutre, que celui-ci n'est pas disponible partout à Bruxelles, et propose deux pastilles : verte (22 kW, 3×400 V + N : compatible) et blanche (7,2 kW, 1×230 V : non compatible). On ne sait pas encore si ces pastilles sont posées sur les bornes ni comment elles sont attribuées. Page : charge.brussels/fr_BE/howtocharge",
-  "src": "charge.brussels",
+  "a": "charge.brussels (un des opérateurs de bornes publiques) indique que la Zoé et la smart ForTwo ont besoin d'un neutre, que celui-ci n'est pas disponible partout à Bruxelles, et invite à vérifier la compatibilité d'après la couleur d'une pastille : verte « 22 kW – 3×400 V + N, Renault Zoé & smart : compatible » ; blanche « 7,2 kW – 1×230 V : non compatible ». Cela ne concerne que le réseau charge.brussels. Une borne sans pastille n'est pas pour autant incompatible. Si vous en voyez une, signalez-la : cela aide à vérifier que les pastilles disent vrai. Page : charge.brussels/fr_BE/howtocharge",
+  "src": "charge.brussels (page et images lues le 17/11/2026)",
   "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
@@ -117,8 +117,8 @@
  {
   "id": "continu",
   "q": "Puis-je charger en courant continu (bornes rapides) ?",
-  "a": "La Smart EQ ne charge qu'en courant alternatif : les bornes rapides en courant continu ne lui servent pas. L'app n'affiche pas ces bornes.",
-  "src": "Logique de l'app",
+  "a": "La smart EQ ne charge qu'en courant alternatif : les bornes rapides en courant continu ne lui servent pas, l'app les masque donc quand votre voiture est une smart. Pour la Zoé (version avec prise rapide CCS), la Kangoo E-Tech et le Townstar, la charge en continu ne dépend pas du même contrôle du réseau : ces bornes restent affichées, comme solution de secours. Vérifiez que votre version de voiture a bien la prise rapide.",
+  "src": "Brugel 2020 (smart) ; logique de l'app",
   "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
@@ -133,13 +133,6 @@
   "q": "L'hexagone « C » sur la borne garantit-il que ma voiture chargera ?",
   "a": "Non. Cette étiquette européenne indique le type de prise (courant alternatif, type 2). Elle ne dit rien sur le réseau électrique derrière la borne (3×230 V sans neutre ou 3×400 V + neutre), qui est la cause des refus.",
   "src": "Règlement européen sur l'étiquetage des bornes (information générale)",
-  "sec": "Le problème : réseaux, bornes et voitures"
- },
- {
-  "id": "pastilles-bruxelles",
-  "q": "Les pastilles vertes ou blanches sur les bornes de Bruxelles : que signifient-elles ?",
-  "a": "Certaines bornes charge.brussels portent une pastille de compatibilité, mais la signification exacte n'est pas documentée dans cette application : ne la prenez pas pour une garantie. Une borne sans pastille (par exemple une borne flamande TotalEnergies) n'est pas pour autant incompatible. Si vous voyez une pastille, photographiez-la : cela aidera à la documenter.",
-  "src": "Observations de terrain ; non confirmé par l'exploitant",
   "sec": "Le problème : réseaux, bornes et voitures"
  },
  {
@@ -166,7 +159,7 @@
  {
   "id": "statuts",
   "q": "Que signifient les couleurs et les zones dans l'app ?",
-  "a": "Vert : des utilisateurs de ces voitures ont chargé sans problème. Rouge : la voiture n'a pas chargé. Orange : essais opposés, c'est-à-dire au moins un essai réussi et au moins un refus sur la même borne (à retenter). Gris : pas encore essayée (vert pâle ou rose pâle : estimation d'après les relevés voisins). Les zones colorées sont des estimations expérimentales, calculées à partir des relevés proches et de la zone du gestionnaire de réseau (Sibelga, Fluvius, ORES) : aucune garantie. Plus il y a de relevés, plus c'est fiable ; un refus isolé parmi de nombreux succès ne change pas la couleur (à partir de 5 relevés). Une pastille verte n'est pas une garantie : même en 3×400 V, la tension entre la terre locale et le neutre peut varier. Gardez toujours une marge de batterie et ne comptez jamais sur une seule borne.",
+  "a": "Vert : des utilisateurs de ces voitures ont chargé sans problème. Rouge : la voiture n'a pas chargé. Orange : essais opposés, c'est-à-dire au moins un essai réussi et au moins un refus sur la même borne (à retenter). Gris : pas encore essayée (vert pâle ou rose pâle : estimation d'après les relevés voisins). Les zones colorées sont des estimations expérimentales, calculées à partir des relevés proches et de la zone du gestionnaire de réseau (Sibelga, Fluvius, ORES) : aucune garantie. Plus il y a de relevés, plus c'est fiable ; un refus isolé parmi de nombreux succès ne change pas la couleur (à partir de 5 relevés). Un point vert sur la carte n'est pas une garantie : même en 3×400 V, la tension entre la terre locale et le neutre peut varier. Gardez toujours une marge de batterie et ne comptez jamais sur une seule borne.",
   "src": "Logique de l'app",
   "sec": "L'application : cartes, relevés et données"
  },
@@ -201,7 +194,7 @@
  {
   "id": "donnees",
   "q": "Que deviennent mes relevés ?",
-  "a": "Chaque relevé est enregistré sur votre téléphone, puis partagé pour que la carte soit commune. Sont envoyés : la borne (nom et position de la borne), le résultat, la date, le modèle de voiture et un identifiant aléatoire du téléphone, utilisé seulement contre les abus et non visible des autres. Jamais votre nom, votre plaque ni votre trajet. Attention : si vous ajoutez une nouvelle borne, sa position exacte est partagée ; décochez « Partager » pour une borne privée ou à domicile. Après chaque relevé, vous avez 8 secondes pour l'annuler avant l'envoi. Un relevé déjà envoyé ne peut pas être effacé par l'app. Autres flux : à chaque relevé, la position de la borne est envoyée aux serveurs OpenStreetMap (Overpass) pour retrouver son nom ; votre adresse IP est vue par ces serveurs, par Supabase (base hébergée en Irlande, UE), par OpenFreeMap et, en repli, par les tuiles OpenStreetMap. Les relevés sont conservés sans durée limite fixée à ce jour. Données : © contributeurs OpenStreetMap (ODbL), Bruxelles Mobilité (CC BY).",
+  "a": "Chaque relevé est enregistré sur votre téléphone, puis partagé pour que la carte soit commune. Sont envoyés : la borne (nom et position de la borne, jamais votre position GPS sauf pour une borne que vous ajoutez à votre position), le résultat, la date, le modèle de voiture et un identifiant aléatoire du téléphone, utilisé seulement contre les abus et non visible des autres. Jamais votre nom, votre plaque ni votre trajet. Attention : si vous ajoutez une nouvelle borne, sa position exacte est partagée ; décochez « Partager » pour une borne privée ou à domicile. Après chaque relevé, vous avez 8 secondes pour l'annuler avant l'envoi. Un relevé déjà envoyé ne peut pas être effacé par l'app. Autres flux : lorsque vous enregistrez un relevé et que la recherche en ligne est active, votre position GPS (zone d'environ 200 m) est envoyée aux serveurs OpenStreetMap (Overpass) pour retrouver le nom de la borne ; lorsque vous affichez la carte autour de vous, une zone d'environ 4 km centrée sur vous est demandée au serveur des données ouvertes flamandes (Vlaanderen) ; les états de borne (en panne, occupée…) et les fiches (nombre de prises, téléphone d'assistance) que vous saisissez sont partagés comme les relevés ; votre adresse IP est vue par ces serveurs, par Supabase (base hébergée en Irlande, UE), par OpenFreeMap et, en repli, par les tuiles OpenStreetMap. Les relevés sont conservés sans durée limite fixée à ce jour. Données : © contributeurs OpenStreetMap (ODbL), Bruxelles Mobilité (CC BY), Departement Mobiliteit en Openbare Werken / Eco-Movement (Open Data Vlaanderen).",
   "src": "Fonctionnement de l'app",
   "sec": "L'application : cartes, relevés et données"
  },

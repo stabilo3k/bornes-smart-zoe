@@ -37,6 +37,9 @@ const val DEFAULT_CAR = "Smart EQ fortwo"
 /** Liste fermée : voitures dont le chargeur 22 kW est connu pour refuser certains réseaux 3×230 V (Brugel 2020 ; Elbilgrossisten). */
 val CARS = listOf("Smart EQ fortwo", "Smart EQ forfour", "Renault Zoé", "Renault Twingo électrique", "Renault Kangoo E-Tech", "Nissan Townstar EV", "Mercedes eCitan")
 
+/** Voitures dont une version accepte la charge rapide en courant continu (CCS) : les bornes DC leur restent utiles en secours. La smart EQ n'en a pas. */
+fun carAcceptsDc(car: String): Boolean = car in setOf("Renault Zoé", "Renault Kangoo E-Tech", "Nissan Townstar EV")
+
 private fun norm(x: String): String =
     java.text.Normalizer.normalize(x.trim().lowercase(), java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
 
@@ -181,11 +184,12 @@ object Store {
         )
     }
 
-    private fun parseReleves(a: JSONArray, seed: Boolean): List<Releve> = (0 until a.length()).map {
+    private fun parseReleves(a: JSONArray, seed: Boolean): List<Releve> = (0 until a.length()).mapNotNull {
         val o = a.getJSONObject(it)
+        val res = runCatching { Result.valueOf(o.getString("result")) }.getOrNull() ?: return@mapNotNull null
         Releve(
             o.getString("id"), o.getString("stationId"), o.optString("ts", ""),
-            Result.valueOf(o.getString("result")),
+            res,
             if (o.has("otherCar") && !o.isNull("otherCar")) o.getBoolean("otherCar") else null,
             o.optString("note", ""), seed, o.optString("car", ""), o.optBoolean("remote", false),
             if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { !it.isNaN() } else null
@@ -294,7 +298,7 @@ object Etats {
         val mine = releves.filter { it.stationId == stationId }
         return active.filter { e ->
             e.stationId == stationId && when {
-                e.kind == EtatKind.PANNE -> mine.none { it.result == Result.OK && it.ts >= day(e.ts) }
+                e.kind == EtatKind.PANNE -> mine.none { it.result == Result.OK && it.ts > day(e.ts) } // seul un relevé d'un jour suivant lève la panne : un relevé du même jour peut être antérieur
                 e.declared && e.kind.declaredOnly -> mine.none { it.ts >= day(e.ts) }
                 else -> true
             }
@@ -359,7 +363,9 @@ object Fiches {
     /** Numéro d'assistance lu sur la borne : 6 à 20 caractères parmi chiffres, espaces, +, ., /, -, (). Sinon null. */
     fun parsePhone(text: String): String? {
         val t = text.trim()
-        return t.takeIf { it.length in 6..20 && Regex("[0-9+().\\-/ ]+").matches(it) && it.count { c -> c.isDigit() } >= 6 }
+        val digits = t.filter { it.isDigit() }.let { if (t.startsWith("+32")) "0" + it.drop(2) else if (it.startsWith("0032")) "0" + it.drop(4) else it }
+        val premium = digits.startsWith("090") || digits.startsWith("070") || digits.startsWith("078") // numéros surtaxés ou à tarif spécial
+        return t.takeIf { it.length in 6..20 && Regex("[0-9+().\\-/ ]+").matches(it) && it.count { c -> c.isDigit() } >= 6 && !premium }
     }
 
     fun parseCount(text: String, max: Int): Int? = text.trim().toIntOrNull()?.takeIf { it in 1..max }

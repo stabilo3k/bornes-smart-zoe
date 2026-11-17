@@ -12,7 +12,7 @@ object Urgence {
                 nVerified: Int = 3, nUnknown: Int = 2, maxKm: Double = 50.0, unknownKm: Double = 10.0, score: (Station) -> Double = { 0.0 }): List<UrgenceItem> {
         val byStation = releves.groupBy { it.stationId }
         val cands = stations.asSequence()
-            .filter { it.current != "DC" && it.kind != "privee" && it.id !in brokenIds }
+            .filter { (it.current != "DC" || carAcceptsDc(car)) && it.kind != "privee" && it.id !in brokenIds }
             .map { it to Geo.distanceM(lat, lon, it.lat, it.lon) }
             .filter { it.second <= maxKm * 1000 }
             .sortedBy { it.second }

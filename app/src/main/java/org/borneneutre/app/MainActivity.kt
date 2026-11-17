@@ -247,9 +247,9 @@ fun App() {
     var showModes by remember { mutableStateOf(false) }
     var loadingScreen by remember { mutableStateOf(false) }
 
-    val baseAll = remember(stations, osmStations, flStations, bxStations) { val b = stations + Overpass.dedupe(stations, osmStations); val b2 = b + Overpass.dedupe(b, flStations); (b2 + Overpass.dedupe(b2, bxStations)).filter { it.current != "DC" } }
-    val visible = remember(baseAll, mode, screenOsm, cacheOsm, myPos, releves, byId) {
-        fun withOsm(): List<Station> = baseAll + Overpass.dedupe(baseAll, (screenOsm + cacheOsm).distinctBy { it.id }).filter { it.current != "DC" }
+    val baseAll = remember(stations, osmStations, flStations, bxStations, myCar) { val dcOk = carAcceptsDc(myCar); val b = stations + Overpass.dedupe(stations, osmStations); val b2 = b + Overpass.dedupe(b, flStations); (b2 + Overpass.dedupe(b2, bxStations)).filter { it.current != "DC" || dcOk } }
+    val visible = remember(baseAll, mode, screenOsm, cacheOsm, myPos, releves, byId, myCar) {
+        fun withOsm(): List<Station> = baseAll + Overpass.dedupe(baseAll, (screenOsm + cacheOsm).distinctBy { it.id }).filter { it.current != "DC" || carAcceptsDc(myCar) }
         when (mode) {
             1 -> { val tried = releves.mapNotNull { byId[it.stationId] }.distinctBy { it.id }
                    baseAll.filter { s -> tried.any { Geo.distanceM(s.lat, s.lon, it.lat, it.lon) <= 1000 } } }
@@ -368,7 +368,7 @@ fun App() {
             if (fl != null && fl.isNotEmpty()) { flStations = (flStations + fl).distinctBy { it.id }; withContext(Dispatchers.IO) { runCatching { java.io.File(ctx.filesDir, "flandre-cache.json").writeText(Flanders.toJson(flStations)) } } }
             val found = withTimeoutOrNull(45_000) { withContext(Dispatchers.IO) { Overpass.fetch(lat, lon, radius) } }
             loadingScreen = false
-            if (fl != null && found == null) Toast.makeText(ctx, "${fl.size} borne(s) flamande(s) ajoutée(s) (données ouvertes). OpenStreetMap indisponible : la liste intégrée reste affichée.", Toast.LENGTH_LONG).show()
+            if (fl != null && fl.isNotEmpty() && found == null) Toast.makeText(ctx, "${fl.size} borne(s) flamande(s) ajoutée(s) (données ouvertes). OpenStreetMap indisponible : la liste intégrée reste affichée.", Toast.LENGTH_LONG).show()
             else if (found == null) Toast.makeText(ctx, "Complément en ligne indisponible (serveur OpenStreetMap occupé ou réseau faible). La liste intégrée reste affichée. Détails : ⓘ → Journal de diagnostic.", Toast.LENGTH_LONG).show()
             else screenOsm = (screenOsm + found).distinctBy { it.id }
         }
@@ -595,7 +595,7 @@ fun App() {
                 Button(
                     onClick = { requireLocation { startReport(Result.OK) } },
                     modifier = Modifier.weight(1f).height(64.dp), shape = MaterialTheme.shapes.extraLarge,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1B9E3A))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF15803D))
                 ) { Text("✅ Ça charge", fontSize = 15.sp, maxLines = 1, softWrap = false) }
                 Button(
                     onClick = { requireLocation { startReport(Result.REFUS) } },

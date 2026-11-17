@@ -46,9 +46,13 @@ class EtatsUrgenceTest {
 
     @Test fun ok_releve_clears_panne_and_declared() {
         val ts = java.time.Instant.ofEpochMilli(now).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
-        val ok = Releve("r", "s1", ts, Result.OK, null, "", false, "Smart EQ fortwo")
+        val tomorrow = java.time.LocalDate.parse(ts).plusDays(1).toString()
+        val ok = Releve("r", "s1", tomorrow, Result.OK, null, "", false, "Smart EQ fortwo")
         val l = listOf(e("1", EtatKind.PANNE, false, 30), e("2", EtatKind.MARCHE, true, 30), e("3", EtatKind.OCCUPEE, false, 30))
         assertEquals(listOf("3"), Etats.shown(l, "s1", listOf(ok)).map { it.id })
+        // un relevé du même jour ne lève pas une panne (il peut être antérieur)
+        val same = Releve("r2", "s1", ts, Result.OK, null, "", false, "Smart EQ fortwo")
+        assertTrue(Etats.shown(l, "s1", listOf(same)).any { it.id == "1" })
         assertEquals(3, Etats.shown(l, "s1", emptyList()).size)
     }
 
@@ -152,5 +156,18 @@ class BrusselsTest {
         org.junit.Assert.assertEquals("monophasé et triphasé", StationInfo.phases(l[0]))
         org.junit.Assert.assertEquals(2, StationInfo.osmPoints(l[0]))
         org.junit.Assert.assertEquals(Brussels.SOURCE, StationInfo.sourceLabel(l[0]))
+    }
+}
+
+class PhoneAndDcTest {
+    @org.junit.Test fun premiumRejected() {
+        org.junit.Assert.assertNull(Fiches.parsePhone("0900 12 345"))
+        org.junit.Assert.assertNull(Fiches.parsePhone("+32 900 12 345"))
+        org.junit.Assert.assertNull(Fiches.parsePhone("070 12 34 56"))
+        org.junit.Assert.assertEquals("0800 58 143", Fiches.parsePhone("0800 58 143"))
+    }
+    @org.junit.Test fun dcOnlyForSomeCars() {
+        org.junit.Assert.assertTrue(carAcceptsDc("Renault Zoé"))
+        org.junit.Assert.assertFalse(carAcceptsDc("Smart EQ fortwo"))
     }
 }
