@@ -1,0 +1,1 @@
+Verdict par modèle de voiture, écran de borne simplifié (menu « Plus… »), légende repliable, motif du refus et pastille vue facultatifs, message à l'exploitant plus précis, heure des états de borne, FAQ restructurée avec 9 illustrations. Moins de données envoyées : la position GPS ne part plus vers OpenStreetMap lors d'un relevé.

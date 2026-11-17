@@ -29,10 +29,19 @@ data class Releve(
     val seed: Boolean,
     val car: String = "",
     val remote: Boolean = false,
-    val kw: Double? = null // puissance maximale observée (kW), facultative, déclarée par l'utilisateur ; peut varier (charge intelligente)
+    val kw: Double? = null, // puissance maximale observée (kW), facultative, déclarée par l'utilisateur ; peut varier (charge intelligente)
+    val motif: String = "" // motif du refus, facultatif : "voyant", "eteinte", "badge" ou ""
 )
 
 const val DEFAULT_CAR = "Smart EQ fortwo"
+
+/** Motif d'un refus, en une touche facultative (choix fermés). Le code part au serveur, le libellé reste sur le téléphone. */
+val MOTIFS = listOf("voyant" to "Voyant orange puis coupure", "eteinte" to "Borne éteinte ou sans réponse", "badge" to "Badge ou authentification refusé")
+fun motifLabel(code: String): String? = MOTIFS.firstOrNull { it.first == code }?.second
+
+/** Pastille de charge.brussels vue sur la borne (choix fermés). */
+val PASTILLES = listOf("verte" to "Verte (22 kW, 3×400 V + N)", "blanche" to "Blanche (7,2 kW, 1×230 V)", "aucune" to "Aucune pastille")
+fun pastilleLabel(code: String): String? = PASTILLES.firstOrNull { it.first == code }?.second
 
 /** Liste fermée : voitures dont le chargeur 22 kW est connu pour refuser certains réseaux 3×230 V (Brugel 2020 ; Elbilgrossisten). */
 val CARS = listOf("Smart EQ fortwo", "Smart EQ forfour", "Renault Zoé", "Renault Twingo électrique", "Renault Kangoo E-Tech", "Nissan Townstar EV", "Mercedes eCitan")
@@ -62,6 +71,15 @@ object Geo {
     }
 }
 
+/** Couleurs du verdict (rapport de contraste ≥ 4,5:1 sur fond blanc). Le symbole (✓ ✕ ±) double toujours la couleur : daltonisme. */
+const val COLOR_OK = "#15803d"
+const val COLOR_NO = "#d62728"
+const val COLOR_MIX = "#b45309"
+const val COLOR_NONE = "#6b7280"
+
+/** Symbole du marqueur : "ok", "no", "mix" ou "" (pas essayée). */
+fun statusSymbol(color: String): String = when (color) { COLOR_OK -> "ok"; COLOR_NO -> "no"; COLOR_MIX -> "mix"; else -> "" }
+
 /** Statut simple d'une borne pour les voitures de la liste : vert / rouge / orange / gris. */
 data class SimpleStatus(val label: String, val color: String, val n: Int, val tried: Boolean)
 
@@ -70,15 +88,26 @@ fun simpleStatus(releves: List<Releve>): SimpleStatus {
     val ko = releves.count { it.result == Result.REFUS }
     val n = releves.size
     val s = if (n > 1) "s" else ""
-    if (n == 0) return SimpleStatus("Pas encore essayée", "#6b7280", 0, false)
+    if (n == 0) return SimpleStatus("Pas encore essayée", COLOR_NONE, 0, false)
     val share = ok.toDouble() / n
     return when {
-        ko == 0 && ok == n -> SimpleStatus("Ça charge ($n relevé$s)", "#1b9e3a", n, true)
-        ok == 0 && ko == n -> SimpleStatus("Ne charge pas ($n relevé$s)", "#d62728", n, true)
-        n >= 5 && share >= 0.8 -> SimpleStatus("Ça charge en général ($ok sur $n, $ko refus)", "#1b9e3a", n, true)
-        n >= 5 && share <= 0.2 -> SimpleStatus("Ne charge pas en général ($ko refus sur $n)", "#d62728", n, true)
-        else -> SimpleStatus("Essais opposés : $ok réussi${if (ok > 1) "s" else ""}, $ko refus", "#f28e2b", n, true)
+        ko == 0 && ok == n -> SimpleStatus("Ça charge ($n relevé$s)", COLOR_OK, n, true)
+        ok == 0 && ko == n -> SimpleStatus("Ne charge pas ($n relevé$s)", COLOR_NO, n, true)
+        n >= 5 && share >= 0.8 -> SimpleStatus("Ça charge en général ($ok sur $n, $ko refus)", COLOR_OK, n, true)
+        n >= 5 && share <= 0.2 -> SimpleStatus("Ne charge pas en général ($ko refus sur $n)", COLOR_NO, n, true)
+        else -> SimpleStatus("Essais opposés : $ok réussi${if (ok > 1) "s" else ""}, $ko refus", COLOR_MIX, n, true)
     }
+}
+
+/** Verdict d'un modèle de voiture sur une borne. */
+data class ModelVerdict(val car: String, val status: SimpleStatus)
+
+/** Verdicts par modèle : « ma voiture » d'abord (même sans essai), puis les autres modèles ayant au moins un relevé, du plus documenté au moins documenté. */
+fun verdictsByModel(releves: List<Releve>, myCar: String): List<ModelVerdict> {
+    val by = releves.groupBy { canonicalCar(it.car) ?: DEFAULT_CAR }
+    val mine = ModelVerdict(myCar, simpleStatus(by[myCar] ?: emptyList()))
+    val others = by.filterKeys { it != myCar }.map { (c, l) -> ModelVerdict(c, simpleStatus(l)) }.sortedWith(compareByDescending<ModelVerdict> { it.status.n }.thenBy { it.car })
+    return listOf(mine) + others
 }
 
 object Store {
@@ -173,7 +202,7 @@ object Store {
     private fun releveJson(r: Releve) = JSONObject()
         .put("id", r.id).put("stationId", r.stationId).put("ts", r.ts)
         .put("result", r.result.name).put("note", r.note).put("car", r.car)
-        .also { if (r.otherCar != null) it.put("otherCar", r.otherCar); if (r.remote) it.put("remote", true); if (r.kw != null) it.put("kw", r.kw) }
+        .also { if (r.otherCar != null) it.put("otherCar", r.otherCar); if (r.remote) it.put("remote", true); if (r.kw != null) it.put("kw", r.kw); if (r.motif.isNotBlank()) it.put("motif", r.motif) }
 
     private fun parseStations(a: JSONArray): List<Station> = (0 until a.length()).map {
         val o = a.getJSONObject(it)
@@ -192,7 +221,8 @@ object Store {
             res,
             if (o.has("otherCar") && !o.isNull("otherCar")) o.getBoolean("otherCar") else null,
             o.optString("note", ""), seed, o.optString("car", ""), o.optBoolean("remote", false),
-            if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { !it.isNaN() } else null
+            if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { !it.isNaN() } else null,
+            o.optString("motif", "").takeIf { c -> motifLabel(c) != null } ?: ""
         )
     }
 }
@@ -325,10 +355,17 @@ object Etats {
         }
     }
 
+    /** « il y a 3 h (14:32) » : l'heure s'ajoute entre 1 h et 24 h, pour distinguer un état de ce matin d'un état d'hier. */
+    fun agoAt(ts: Long, now: Long): String {
+        val m = maxOf(0L, (now - ts) / 60_000L)
+        val base = ago(ts, now)
+        return if (m in 60 until 24 * 60) base + " (" + java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()).toLocalTime().withSecond(0).withNano(0) + ")" else base
+    }
+
     fun lineText(l: EtatLine, now: Long): String {
         val n = if (l.count > 1) " · ${l.count} signalements" else ""
-        return if (l.declared) "${if (l.kind == EtatKind.PANNE) "Déclarée en panne" else "Déclarée : " + l.kind.label.lowercase()} (non testé, non vérifié) · ${ago(l.newestTs, now)}$n"
-        else "${l.kind.label} · ${ago(l.newestTs, now)}$n"
+        return if (l.declared) "${if (l.kind == EtatKind.PANNE) "Déclarée en panne" else "Déclarée : " + l.kind.label.lowercase()} (non testé, non vérifié) · ${agoAt(l.newestTs, now)}$n"
+        else "${l.kind.label} · ${agoAt(l.newestTs, now)}$n"
     }
 
     fun toJson(l: List<Etat>): String = org.json.JSONArray().also { a ->
@@ -350,14 +387,14 @@ object Etats {
 
 
 /** Fiche de borne remplie par la communauté : nombre de bornes (points de charge) à cet endroit, prises par borne, puissance déclarée. Chaque champ est facultatif. */
-data class Fiche(val id: String, val stationId: String, val name: String, val lat: Double, val lon: Double, val points: Int?, val plugs: Int?, val kw: Double?, val ts: Long, val contact: String? = null)
+data class Fiche(val id: String, val stationId: String, val name: String, val lat: Double, val lon: Double, val points: Int?, val plugs: Int?, val kw: Double?, val ts: Long, val contact: String? = null, val pastille: String? = null)
 
 object Fiches {
     /** Pour chaque borne, la valeur la plus récente de chaque champ renseigné. */
     fun merge(all: List<Fiche>): Map<String, Fiche> =
         all.groupBy { it.stationId }.mapValues { (_, v) ->
             val l = v.sortedByDescending { it.ts }
-            Fiche(l[0].id, l[0].stationId, l[0].name, l[0].lat, l[0].lon, l.firstNotNullOfOrNull { it.points }, l.firstNotNullOfOrNull { it.plugs }, l.firstNotNullOfOrNull { it.kw }, l[0].ts, l.firstNotNullOfOrNull { it.contact })
+            Fiche(l[0].id, l[0].stationId, l[0].name, l[0].lat, l[0].lon, l.firstNotNullOfOrNull { it.points }, l.firstNotNullOfOrNull { it.plugs }, l.firstNotNullOfOrNull { it.kw }, l[0].ts, l.firstNotNullOfOrNull { it.contact }, l.firstNotNullOfOrNull { it.pastille })
         }
 
     /** Numéro d'assistance lu sur la borne : 6 à 20 caractères parmi chiffres, espaces, +, ., /, -, (). Sinon null. */
@@ -379,7 +416,7 @@ object Fiches {
 
     fun toJson(l: List<Fiche>): String = org.json.JSONArray().also { a ->
         l.forEach { a.put(JSONObject().put("id", it.id).put("stationId", it.stationId).put("name", it.name).put("lat", it.lat).put("lon", it.lon)
-            .also { o -> it.points?.let { v -> o.put("points", v) }; it.plugs?.let { v -> o.put("plugs", v) }; it.kw?.let { v -> o.put("kw", v) }; it.contact?.let { v -> o.put("contact", v) } }.put("ts", it.ts)) }
+            .also { o -> it.points?.let { v -> o.put("points", v) }; it.plugs?.let { v -> o.put("plugs", v) }; it.kw?.let { v -> o.put("kw", v) }; it.contact?.let { v -> o.put("contact", v) }; it.pastille?.let { v -> o.put("pastille", v) } }.put("ts", it.ts)) }
     }.toString()
 
     fun fromJson(json: String): List<Fiche> {
@@ -388,7 +425,7 @@ object Fiches {
             val o = a.getJSONObject(it)
             Fiche(o.getString("id"), o.getString("stationId"), o.optString("name", ""), o.optDouble("lat", 0.0), o.optDouble("lon", 0.0),
                 if (o.has("points")) o.optInt("points") else null, if (o.has("plugs")) o.optInt("plugs") else null,
-                if (o.has("kw")) o.optDouble("kw").takeIf { v -> !v.isNaN() } else null, o.optLong("ts", 0L), o.optString("contact", "").ifBlank { null })
+                if (o.has("kw")) o.optDouble("kw").takeIf { v -> !v.isNaN() } else null, o.optLong("ts", 0L), o.optString("contact", "").ifBlank { null }, o.optString("pastille", "").takeIf { c -> pastilleLabel(c) != null })
         }
     }
 

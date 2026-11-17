@@ -19,6 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -61,20 +63,27 @@ fun EtatDialog(s: Station, myCar: String, onDismiss: () -> Unit, onEtat: (EtatKi
         title = { Text(s.name, maxLines = 2) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text("Qui a fait l'essai ?", style = MaterialTheme.typography.labelLarge)
-                Choice(who == 0, "Je suis sur place") { who = 0; kind = null }
-                Choice(who == 1, "J'ai essayé, mais je ne suis plus sur place") { who = 1 }
-                Choice(who == 2, "Quelqu'un d'autre me l'a dit") { who = 2; kind = null }
-                Text(if (who == 1) "Résultat de mon essai" else "État de la borne", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
+                if (who == 0) {
+                    Text("Je suis sur place :", style = MaterialTheme.typography.labelLarge)
+                    listOf(EtatKind.PANNE, EtatKind.OCCUPEE, EtatKind.FILE, EtatKind.LIBRE).forEach { k ->
+                        Button(onClick = { onEtat(k, false, myCar, "sur place") }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp).height(52.dp)) { Text(k.label, fontSize = 15.sp) }
+                    }
+                    Text("Autre situation :", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
+                    TextButton(onClick = { who = 1 }) { Text("J'ai essayé, mais je ne suis plus sur place") }
+                    TextButton(onClick = { who = 2; kind = null }) { Text("Quelqu'un d'autre me l'a dit") }
+                } else {
+                    TextButton(onClick = { who = 0; kind = null }) { Text("← Retour") }
+                    Text(if (who == 1) "Résultat de mon essai" else "État de la borne", style = MaterialTheme.typography.labelLarge)
+                }
                 when (who) {
-                    0 -> listOf(EtatKind.PANNE, EtatKind.OCCUPEE, EtatKind.FILE, EtatKind.LIBRE).forEach { k -> Choice(kind == k, k.label) { kind = k } }
+                    0 -> {}
                     1 -> {
                         Choice(pick == 1, "✅ Ça charge") { pick = 1 }
                         Choice(pick == 2, "❌ Ne charge pas (la borne démarre mais refuse ma voiture)") { pick = 2 }
                         Choice(pick == 3, "⚠ En panne (la borne ne démarre pas, voyant d'erreur, éteinte)") { pick = 3 }
                         Text("Quand ?", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 6.dp))
                         whens.forEachIndexed { i, w -> Choice(whenIdx == i, w.first) { whenIdx = i } }
-                        Text("Un essai de charge est enregistré comme un vrai relevé « à distance » avec ma voiture ($myCar) ; une panne comme un état de borne.", fontSize = 11.sp, color = Color.Gray)
+                        Text("Un essai de charge est enregistré comme un vrai relevé « à distance » avec ma voiture ($myCar) ; une panne comme un état de borne.", fontSize = 12.sp, color = Color(0xFF4B5563))
                     }
                     else -> {
                         listOf(EtatKind.MARCHE, EtatKind.NEMARCHEPAS, EtatKind.PANNE).forEach { k -> Choice(kind == k, k.label) { kind = k } }
@@ -88,7 +97,7 @@ fun EtatDialog(s: Station, myCar: String, onDismiss: () -> Unit, onEtat: (EtatKi
             }
         },
         confirmButton = {
-            TextButton(enabled = ready, onClick = {
+            if (who != 0) TextButton(enabled = ready, onClick = {
                 when (who) {
                     0 -> onEtat(kind!!, false, myCar, "sur place")
                     1 -> onPast(when (pick) { 1 -> Result.OK; 2 -> Result.REFUS; else -> null }, whens[whenIdx].second.toString())
@@ -102,26 +111,28 @@ fun EtatDialog(s: Station, myCar: String, onDismiss: () -> Unit, onEtat: (EtatKi
 
 /** « Prévenir l'exploitant » : message prêt à copier ou partager ; rien n'est envoyé automatiquement. */
 @Composable
-fun WarnDialog(s: Station, phone: String?, onDismiss: () -> Unit) {
+fun WarnDialog(s: Station, phone: String?, car: String, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val msg = remember(s.id) {
         "Bonjour,\nla borne « ${s.name} »" + (if (s.operator.isNotBlank()) " (${s.operator})" else "") + " (position ${String.format(java.util.Locale.US, "%.5f, %.5f", s.lat, s.lon)}) " +
-            "ne fonctionne pas ou refuse de charger, constaté le ${LocalDate.now()}. Pourriez-vous vérifier ? Merci.\n— Message préparé avec l'application Bornes Smart et Zoé (aucune donnée personnelle)."
+            "Ma voiture ($car) n'a pas pu charger sur cette borne le ${LocalDate.now()}. Pourriez-vous m'indiquer si la borne fonctionne et à quel type de raccordement elle est alimentée (3×400 V + neutre ou 3×230 V) ? Merci.\n— Message préparé avec l'application Bornes Smart et Zoé (aucune donnée personnelle)."
     }
-    val total = s.operator.contains("total", ignoreCase = true)
+    // Le 0800 58 143 est l'assistance de charge.brussels / TotalEnergies à Bruxelles : jamais proposé ailleurs.
+    val inBxl = s.lat in 50.76..50.92 && s.lon in 4.24..4.50
+    val total = inBxl && (s.operator.contains("total", ignoreCase = true) || s.operator.contains("charge.brussels", ignoreCase = true))
     val op = Operators.forOperator(s.operator)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Prévenir l'exploitant") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Rien n'est envoyé automatiquement. Copiez ou partagez ce message, ou appelez le numéro indiqué sur la borne.", fontSize = 12.sp, color = Color.Gray)
+                Text("Rien n'est envoyé automatiquement. Copiez ou partagez ce message, ou appelez le numéro indiqué sur la borne.", fontSize = 12.sp, color = Color(0xFF4B5563))
                 Text(msg, fontSize = 13.sp)
                 if (phone != null) Text("Téléphone d'assistance indiqué par un utilisateur pour cette borne : $phone (à vérifier sur la borne).", fontSize = 13.sp)
                 else Text("Le numéro d'assistance est écrit sur la borne ou son autocollant : notez-le avec « Compléter la fiche » pour les autres conducteurs.", fontSize = 12.sp)
-                if (total && phone == null) Text("Vu sur une borne TotalEnergies / Vlaanderen à Wemmel : 0800 58 143 (le numéro dépend du réseau : vérifiez sur la borne).", fontSize = 12.sp)
+                if (total && phone == null) Text("Assistance charge.brussels / TotalEnergies à Bruxelles : 0800 58 143 (vérifiez sur la borne).", fontSize = 12.sp)
                 if (op != null) Text("Formulaire de contact ${op.name} : ${op.url}", fontSize = 12.sp)
-                Text("À donner en appelant : le lieu, l'identifiant de la borne (étiquette), l'heure et le message d'erreur affiché.", fontSize = 12.sp, color = Color.Gray)
+                Text("À donner en appelant : le lieu, l'identifiant de la borne (étiquette), l'heure et le message d'erreur affiché.", fontSize = 12.sp, color = Color(0xFF4B5563))
             }
         },
         confirmButton = {
@@ -182,7 +193,8 @@ private fun field(text: String, onChange: (String) -> Unit, label: String) =
 
 /** Compléter la fiche d'une borne : nombre de bornes à cet endroit, prises par borne, puissance. Tout est facultatif ; partagé avec la communauté. */
 @Composable
-fun FicheDialog(s: Station, current: Fiche?, osmPoints: Int?, onDismiss: () -> Unit, onSave: (Int?, Int?, Double?, String?) -> Unit) {
+fun FicheDialog(s: Station, current: Fiche?, osmPoints: Int?, onDismiss: () -> Unit, onSave: (Int?, Int?, Double?, String?, String?) -> Unit) {
+    var pastille by remember { mutableStateOf(current?.pastille ?: "") }
     var contact by remember { mutableStateOf(current?.contact ?: "") }
     var points by remember { mutableStateOf(current?.points?.toString() ?: "") }
     var plugs by remember { mutableStateOf(current?.plugs?.toString() ?: "") }
@@ -193,19 +205,26 @@ fun FicheDialog(s: Station, current: Fiche?, osmPoints: Int?, onDismiss: () -> U
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(s.name, fontSize = 13.sp)
-                Text("Combien de bornes (boîtiers) à cet endroit, et combien de prises par borne ? Exemple : Lidl = 2 bornes, 1 prise par borne ; Colruyt = 2 bornes, 2 prises par borne.", fontSize = 12.sp, color = Color.Gray)
+                Text("Combien de bornes (boîtiers) à cet endroit, et combien de prises par borne ? Exemple : Lidl = 2 bornes, 1 prise par borne ; Colruyt = 2 bornes, 2 prises par borne.", fontSize = 12.sp, color = Color(0xFF4B5563))
                 if (osmPoints != null) Text("OpenStreetMap indique $osmPoints point(s) de charge ici.", fontSize = 12.sp)
                 field(points, { points = it }, "Nombre de bornes")
                 field(plugs, { plugs = it }, "Prises par borne")
                 field(kw, { kw = it }, "Puissance de la borne, en kW (si affichée)")
+                Text("Pastille vue sur la borne (charge.brussels)", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 4.dp))
+                PASTILLES.forEach { (code, lib) ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = pastille == code, onClick = { pastille = if (pastille == code) "" else code })
+                        Text(lib, fontSize = 13.sp)
+                    }
+                }
                 androidx.compose.material3.OutlinedTextField(value = contact, onValueChange = { contact = it.take(20) }, label = { Text("Téléphone d'assistance (écrit sur la borne)") }, singleLine = true,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone))
                 Text("Le numéro d'assistance figure sur la borne ou son autocollant : il servira à prévenir l'exploitant d'une panne. Laissez vide ce que vous ne savez pas. Ces informations sont partagées anonymement et ne changent pas le verdict de compatibilité.", fontSize = 11.sp, color = Color.Gray)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(Fiches.parseCount(points, 30), Fiches.parseCount(plugs, 8), Etats.parseKw(kw), Fiches.parsePhone(contact)) },
-                enabled = Fiches.parseCount(points, 30) != null || Fiches.parseCount(plugs, 8) != null || Etats.parseKw(kw) != null || Fiches.parsePhone(contact) != null) { Text("Enregistrer") }
+            TextButton(onClick = { onSave(Fiches.parseCount(points, 30), Fiches.parseCount(plugs, 8), Etats.parseKw(kw), Fiches.parsePhone(contact), pastille.ifBlank { null }) },
+                enabled = Fiches.parseCount(points, 30) != null || Fiches.parseCount(plugs, 8) != null || Etats.parseKw(kw) != null || Fiches.parsePhone(contact) != null || pastille.isNotBlank()) { Text("Enregistrer") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
     )
@@ -223,7 +242,7 @@ fun NewStationDialog(onDismiss: () -> Unit, onSave: (String, Int?, Int?, Double?
         title = { Text("Ajouter une borne ici") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Pour une borne publique absente de la carte (ex. un parking de commune, un supermarché). Elle sera visible par tous. Pas de borne privée ou à domicile.", fontSize = 12.sp, color = Color.Gray)
+                Text("Pour une borne publique absente de la carte (ex. un parking de commune, un supermarché). Elle sera visible par tous. Pas de borne privée ou à domicile.", fontSize = 12.sp, color = Color(0xFF4B5563))
                 androidx.compose.material3.OutlinedTextField(value = name, onValueChange = { name = it.take(80) }, label = { Text("Nom ou adresse (ex. Albert Heijn Wemmel)") }, singleLine = true)
                 field(points, { points = it }, "Nombre de bornes (facultatif)")
                 field(plugs, { plugs = it }, "Prises par borne (facultatif)")

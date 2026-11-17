@@ -49,9 +49,9 @@ class AppTest {
 
     @Test fun simpleStatuses() {
         assertEquals("#6b7280", simpleStatus(emptyList()).color)
-        assertEquals("#1b9e3a", simpleStatus(listOf(r("a", Result.OK))).color)
-        assertEquals("#d62728", simpleStatus(listOf(r("a", Result.REFUS))).color)
-        assertEquals("#f28e2b", simpleStatus(listOf(r("a", Result.OK), r("a", Result.REFUS))).color)
+        assertEquals(COLOR_OK, simpleStatus(listOf(r("a", Result.OK))).color)
+        assertEquals(COLOR_NO, simpleStatus(listOf(r("a", Result.REFUS))).color)
+        assertEquals(COLOR_MIX, simpleStatus(listOf(r("a", Result.OK), r("a", Result.REFUS))).color)
     }
 
     @Test fun importKeepsOnlyKnownCars() {
@@ -128,8 +128,8 @@ class AppTest {
 
     @Test fun oneRefusalDoesNotTurnTenSuccessesOrange() {
         val l = (1..9).map { r("a", Result.OK, "2026-10-%02d".format(it)) } + r("a", Result.REFUS, "2026-11-01")
-        assertEquals("#1b9e3a", simpleStatus(l).color)
-        assertEquals("#f28e2b", simpleStatus(listOf(r("a", Result.OK), r("a", Result.REFUS))).color)
+        assertEquals(COLOR_OK, simpleStatus(l).color)
+        assertEquals(COLOR_MIX, simpleStatus(listOf(r("a", Result.OK), r("a", Result.REFUS))).color)
     }
 
     @Test fun uploadSkipsRejectedRowsAndStopsOnNetworkError() {

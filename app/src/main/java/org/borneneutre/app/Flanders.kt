@@ -54,12 +54,14 @@ object Flanders {
         }
     }
 
-    fun fetch(lat: Double, lon: Double, radiusM: Int): List<Station>? {
+    /** Le centre est toujours arrondi sur une grille de 0,04° : le serveur ne reçoit jamais la position exacte de l'utilisateur. */
+    fun fetch(lat0: Double, lon0: Double, radius0: Int): List<Station>? {
+        val lat = Math.round(lat0 / 0.04) * 0.04; val lon = Math.round(lon0 / 0.04) * 0.04; val radiusM = maxOf(radius0, 4500)
         val t0 = System.currentTimeMillis()
         return try {
             val c = URL(url(lat, lon, radiusM)).openConnection() as HttpURLConnection
             c.connectTimeout = 6000; c.readTimeout = 15000
-            c.setRequestProperty("User-Agent", "BorneNeutre/1.0 (Android)"); c.setRequestProperty("Accept", "application/json")
+            c.setRequestProperty("User-Agent", "BorneNeutre/1.2 (Android; +https://github.com/stabilo3k/bornes-smart-zoe)"); c.setRequestProperty("Accept", "application/json")
             val code = c.responseCode
             if (code != 200) { lastError = "HTTP $code"; DiagLog.add("Flandre autour ($radiusM m) : HTTP $code, ${System.currentTimeMillis() - t0} ms"); return null }
             val r = parse(c.inputStream.bufferedReader().readText())

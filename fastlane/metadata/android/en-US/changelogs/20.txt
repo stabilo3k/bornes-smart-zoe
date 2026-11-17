@@ -1,0 +1,1 @@
+Verdict per car model, simpler station card (More… menu), collapsible legend, optional refusal reason and badge colour, clearer message to the operator, time of station states, restructured FAQ with 9 illustrations. Less data sent: your GPS position no longer goes to OpenStreetMap when you log a result.

@@ -52,7 +52,7 @@ object Overpass {
             try {
                 val c = URL(ep).openConnection() as HttpURLConnection
                 c.requestMethod = "POST"; c.connectTimeout = 5000; c.readTimeout = 12000; c.doOutput = true
-                c.setRequestProperty("User-Agent", "BorneNeutre/1.0 (Android)")
+                c.setRequestProperty("User-Agent", "BorneNeutre/1.2 (Android; +https://github.com/stabilo3k/bornes-smart-zoe)")
                 c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 c.setRequestProperty("Accept", "application/json")
                 c.outputStream.use { it.write(body.toByteArray()) }
@@ -79,7 +79,7 @@ object Overpass {
             try {
                 val c = URL(ep).openConnection() as HttpURLConnection
                 c.requestMethod = "POST"; c.connectTimeout = 8000; c.readTimeout = 70000; c.doOutput = true
-                c.setRequestProperty("User-Agent", "BorneNeutre/1.0 (Android)"); c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                c.setRequestProperty("User-Agent", "BorneNeutre/1.2 (Android; +https://github.com/stabilo3k/bornes-smart-zoe)"); c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 c.outputStream.use { it.write(body.toByteArray()) }
                 val code = c.responseCode
                 if (code == 200) { val t = c.inputStream.bufferedReader().readText(); DiagLog.add("OSM zone $host : OK ${t.length / 1024} Ko, ${System.currentTimeMillis() - t0} ms"); return t }

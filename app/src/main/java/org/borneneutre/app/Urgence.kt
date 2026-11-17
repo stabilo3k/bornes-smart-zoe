@@ -23,7 +23,7 @@ object Urgence {
             val st = simpleStatus(mine)
             when {
                 mine.isEmpty() -> if (d <= unknownKm * 1000 && StationInfo.accessLabel(s) != "Accès privé") unknown.add(UrgenceItem(s, d, st, false, score(s)))
-                mine.any { it.result == Result.OK } && st.color != "#d62728" -> if (verified.size < nVerified) verified.add(UrgenceItem(s, d, st, true))
+                mine.any { it.result == Result.OK } && st.color != COLOR_NO -> if (verified.size < nVerified) verified.add(UrgenceItem(s, d, st, true))
             }
             if (verified.size >= nVerified && unknown.size >= 40) break
         }

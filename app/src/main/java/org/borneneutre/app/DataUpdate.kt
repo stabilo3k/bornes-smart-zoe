@@ -27,7 +27,7 @@ object DataUpdate {
     private fun get(url: String): String? {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 8000; c.readTimeout = 30000
-        c.setRequestProperty("User-Agent", "BorneNeutre/1.0 (Android)")
+        c.setRequestProperty("User-Agent", "BorneNeutre/1.2 (Android; +https://github.com/stabilo3k/bornes-smart-zoe)")
         return if (c.responseCode == 200) c.inputStream.bufferedReader().readText() else { DiagLog.add("Mise à jour listes : HTTP ${c.responseCode} ${url.substringAfterLast('/')}"); null }
     }
 

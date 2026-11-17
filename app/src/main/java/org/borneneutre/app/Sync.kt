@@ -32,7 +32,7 @@ object Sync {
     }
 
     /** Lignes à envoyer pour les relevés de l'utilisateur qui n'ont pas encore été envoyés. */
-    fun toRows(releves: List<Releve>, stations: Map<String, Station>, device: String, alreadySent: Set<String>): JSONArray {
+    fun toRows(releves: List<Releve>, stations: Map<String, Station>, device: String, alreadySent: Set<String>, withV12: Boolean = false): JSONArray {
         val out = JSONArray()
         for (r in releves) {
             if (r.id in alreadySent) continue
@@ -44,7 +44,7 @@ object Sync {
                     .put("station_name", s.name.take(120)).put("lat", s.lat).put("lon", s.lon)
                     .put("current", if (s.current in listOf("AC", "DC")) s.current else "?")
                     .put("result", r.result.name).put("car", car).put("ts", r.ts)
-                    .also { if (r.remote) it.put("remote", true); if (r.kw != null) it.put("kw", r.kw) }
+                    .also { if (r.remote) it.put("remote", true); if (r.kw != null) it.put("kw", r.kw); if (withV12 && r.motif.isNotBlank()) it.put("motif", r.motif) }
             )
         }
         return out
@@ -65,7 +65,8 @@ object Sync {
                 st[sid] = Station(sid, o.optString("station_name", "Borne"), "", o.getDouble("lat"), o.getDouble("lon"), o.optString("current", "?"), "", "commu")
             val res = runCatching { Result.valueOf(o.getString("result")) }.getOrNull() ?: continue // résultat inconnu : ligne ignorée
             rl.add(Releve(cid, sid, o.optString("ts", ""), res, null, "", false, car, o.optBoolean("remote", false),
-                if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { !it.isNaN() } else null))
+                if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { !it.isNaN() } else null,
+                o.optString("motif", "").takeIf { c -> motifLabel(c) != null } ?: ""))
         }
         return Pair(st.values.toList(), rl)
     }
@@ -91,6 +92,23 @@ object Sync {
         else Resp(code, null, try { c.errorStream?.bufferedReader()?.readText() } catch (_: Exception) { null })
     }
 
+    // ---- Colonnes « 1.2 » (motif du refus, pastille vue) : utilisées seulement si le serveur les a (SQL docs/SUPABASE-MAJ-1.2.sql). ----
+    @Volatile private var v12At = 0L
+    @Volatile private var v12Ok = false
+
+    /** Sonde la base au plus une fois toutes les 6 h : vrai si les colonnes releves.motif et fiches.pastille existent. Sans elles, ces champs restent sur le téléphone. */
+    fun probeV12(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - v12At < 6L * 3600 * 1000) return v12Ok
+        v12Ok = try { call("releves?select=motif&limit=1", "GET", null).body != null && call("fiches?select=pastille&limit=1", "GET", null).body != null } catch (_: Exception) { return v12Ok }
+        v12At = now
+        DiagLog.add("serveur 1.2 (motif, pastille) : " + if (v12Ok) "présent" else "absent, champs gardés sur le téléphone")
+        return v12Ok
+    }
+
+    /** Lignes refusées définitivement par le serveur lors du dernier envoi (violation de contrainte) : affiché à l'utilisateur. */
+    @Volatile var rejected = 0
+
     /** État du dernier envoi, affiché à l'écran pour le diagnostic. */
     @Volatile var status: String = ""
     @Volatile private var lastCode: String = ""
@@ -115,6 +133,7 @@ object Sync {
             for (k in 0 until chunk.length()) {
                 val one = JSONArray().put(chunk.get(k))
                 val c1 = post(one.toString())
+                if (c1 == REJECTED) rejected++
                 if (c1 in 200..299 || c1 == REJECTED) done += ids(one) else return done
             }
         }
@@ -124,7 +143,9 @@ object Sync {
     /** Envoie les nouveaux relevés puis télécharge tous les relevés partagés (par pages de 1 000). Null si le réseau ne répond pas. */
     fun sync(ctx: Context, userReleves: List<Releve>, stations: Map<String, Station>): Pair<String, Set<String>>? = try {
         val sent = loadSynced(ctx)
-        val rows = toRows(userReleves, stations, deviceId(ctx), sent)
+        val v12 = probeV12()
+        rejected = 0
+        val rows = toRows(userReleves, stations, deviceId(ctx), sent, v12)
         var newSent = sent
         val priv = userReleves.count { stations[it.stationId]?.kind == "privee" }
         lastCode = ""
@@ -139,14 +160,14 @@ object Sync {
         if (rows.length() > 0 || waiting > 0) DiagLog.add("synchro : $waiting en attente / ${rows.length()} à envoyer")
         status = when {
             waiting > 0 -> "envoi en attente : $waiting relevé(s) ($lastCode)"
-            rows.length() > 0 -> "${rows.length()} relevé(s) envoyé(s)" + (if (priv > 0) ", $priv privé(s) non envoyé(s)" else "")
+            rows.length() > 0 -> "${rows.length()} relevé(s) envoyé(s)" + (if (rejected > 0) ", dont $rejected refusé(s) par le serveur (ignoré(s))" else "") + (if (priv > 0) ", $priv privé(s) non envoyé(s)" else "")
             priv > 0 -> "$priv relevé(s) sur borne privée : non envoyés"
             else -> "envoi : rien à envoyer"
         }
         val all = JSONArray()
         var offset = 0
         // Colonnes facultatives (remote, kw) : elles n'existent qu'après la mise à jour SQL ; repli sur moins de colonnes si le serveur répond 400.
-        val ladder = listOf(",remote,kw", ",remote", "")
+        val ladder = if (v12) listOf(",remote,kw,motif", ",remote,kw", ",remote", "") else listOf(",remote,kw", ",remote", "")
         var level = 0
         while (offset < 20000) {
             val base = "releves?select=client_id,station_id,station_name,lat,lon,current,result,car,ts"
@@ -160,6 +181,7 @@ object Sync {
             for (k in 0 until page.length()) all.put(page.get(k))
             if (page.length() < 1000) break
             offset += 1000
+            if (offset >= 20000) { status += " · liste tronquée à 20 000 relevés"; DiagLog.add("lecture relevés : plafond de 20 000 lignes atteint") }
         }
         Pair(all.toString(), newSent)
     } catch (e: Exception) {
@@ -220,7 +242,7 @@ object Sync {
 
     // ---- Fiches de borne (table « fiches », SQL 1.0.4) : nombre de bornes, prises par borne, puissance déclarée. ----
 
-    fun ficheRows(fiches: List<Fiche>, stations: Map<String, Station>, device: String, alreadySent: Set<String>): JSONArray {
+    fun ficheRows(fiches: List<Fiche>, stations: Map<String, Station>, device: String, alreadySent: Set<String>, withV12: Boolean = false): JSONArray {
         val out = JSONArray()
         for (f in fiches) {
             if (f.id in alreadySent) continue
@@ -228,7 +250,7 @@ object Sync {
             if (s.kind == "privee") continue
             out.put(JSONObject().put("client_id", f.id).put("device", device).put("station_id", s.id)
                 .put("station_name", s.name.take(120)).put("lat", s.lat).put("lon", s.lon)
-                .also { o -> f.points?.let { o.put("points", it) }; f.plugs?.let { o.put("plugs", it) }; f.kw?.let { o.put("kw", it) }; f.contact?.let { o.put("contact", it) } })
+                .also { o -> f.points?.let { o.put("points", it) }; f.plugs?.let { o.put("plugs", it) }; f.kw?.let { o.put("kw", it) }; f.contact?.let { o.put("contact", it) }; if (withV12) f.pastille?.let { o.put("pastille", it) } })
         }
         return out
     }
@@ -242,7 +264,7 @@ object Sync {
             out.add(Fiche(o.getString("client_id"), o.getString("station_id"), o.optString("station_name", ""), o.optDouble("lat", 0.0), o.optDouble("lon", 0.0),
                 if (o.has("points") && !o.isNull("points")) o.optInt("points") else null, if (o.has("plugs") && !o.isNull("plugs")) o.optInt("plugs") else null,
                 if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { v -> !v.isNaN() } else null, ts,
-                Fiches.parsePhone(o.optString("contact", ""))))
+                Fiches.parsePhone(o.optString("contact", "")), o.optString("pastille", "").takeIf { c -> pastilleLabel(c) != null }))
         }
         return out
     }
@@ -251,7 +273,8 @@ object Sync {
     fun syncFiches(ctx: Context, mine: List<Fiche>, stations: Map<String, Station>): String? = try {
         val p = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         val sent = p.getStringSet("synced_fiches", emptySet()) ?: emptySet()
-        val rows = ficheRows(mine, stations, deviceId(ctx), sent)
+        val v12 = probeV12()
+        val rows = ficheRows(mine, stations, deviceId(ctx), sent, v12)
         if (rows.length() > 0) {
             val done = upload(rows) { body ->
                 try { val r = call("fiches?on_conflict=client_id", "POST", body, PREFER); DiagLog.add("envoi fiches : HTTP ${r.code} ${(r.err ?: "").take(90)}"); classify(r.code, r.err) }
@@ -260,7 +283,7 @@ object Sync {
             p.edit().putStringSet("synced_fiches", sent + done).apply()
         }
         val cols = "client_id,station_id,station_name,lat,lon,points,plugs,kw"
-        var r = call("fiches?select=$cols,contact,created_at&order=created_at.desc&limit=2000", "GET", null)
+        var r = call("fiches?select=$cols,contact${if (v12) ",pastille" else ""},created_at&order=created_at.desc&limit=2000", "GET", null)
         if (r.body == null && r.code == 400) r = call("fiches?select=$cols,created_at&order=created_at.desc&limit=2000", "GET", null) // colonne contact absente avant la mise à jour SQL
         if (r.body == null) { DiagLog.add("lecture fiches : HTTP ${r.code} ${(r.err ?: "").take(90)}"); null } else r.body
     } catch (e: Exception) {
