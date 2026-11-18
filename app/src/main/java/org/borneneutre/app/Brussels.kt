@@ -35,7 +35,9 @@ object Brussels {
         return out
     }
 
-    fun loadEmbedded(ctx: Context): List<Station> = try {
-        parse((DataUpdate.localFile(ctx, DataUpdate.BXL_FILE)?.readText()) ?: ctx.assets.open("bornes-bruxelles.json").bufferedReader().readText())
-    } catch (e: Exception) { emptyList() }
+    fun loadEmbedded(ctx: Context): List<Station> {
+        val local = try { DataUpdate.localFile(ctx, DataUpdate.BXL_FILE)?.let { parse(it.readText()) } } catch (e: Exception) { null }
+        if (!local.isNullOrEmpty()) return local
+        return try { parse(ctx.assets.open("bornes-bruxelles.json").bufferedReader().readText()) } catch (e: Exception) { emptyList() }
+    }
 }

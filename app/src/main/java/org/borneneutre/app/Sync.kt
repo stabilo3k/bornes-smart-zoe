@@ -196,6 +196,8 @@ object Sync {
         val out = JSONArray()
         for (e in etats) {
             if (e.id in alreadySent) continue
+            // Le serveur date l'état à la réception : on n'envoie pas un état déjà à moitié périmé (sinon il reviendrait « frais »).
+            if (System.currentTimeMillis() - e.ts > minOf(e.kind.ttlHours, 24) * 3_600_000L / 2) continue
             val s = stations[e.stationId] ?: continue
             if (s.kind == "privee") continue
             out.put(

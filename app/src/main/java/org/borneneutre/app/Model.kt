@@ -117,10 +117,11 @@ object Store {
         parseStations(JSONArray(ctx.assets.open("stations.json").bufferedReader().readText()))
 
     /** Liste des bornes OpenStreetMap de Belgique embarquée (hors ligne ; © contributeurs OpenStreetMap, ODbL) ; vide si le fichier est illisible. */
-    fun loadEmbeddedOsm(ctx: Context): List<Station> = try {
-        Overpass.parse((DataUpdate.localFile(ctx, DataUpdate.OSM_FILE)?.readText()) ?: ctx.assets.open("bornes-be-osm.json").bufferedReader().readText())
-    } catch (e: Exception) {
-        emptyList()
+    fun loadEmbeddedOsm(ctx: Context): List<Station> {
+        val local = try { DataUpdate.localFile(ctx, DataUpdate.OSM_FILE)?.let { Overpass.parse(it.readText()) } } catch (e: Exception) { null }
+        if (!local.isNullOrEmpty()) return local
+        // fichier téléchargé absent, illisible ou vide : repli sur la liste embarquée
+        return try { Overpass.parse(ctx.assets.open("bornes-be-osm.json").bufferedReader().readText()) } catch (e: Exception) { emptyList() }
     }
 
     fun loadSeedReleves(ctx: Context): List<Releve> =

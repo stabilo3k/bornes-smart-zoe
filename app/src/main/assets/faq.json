@@ -10,7 +10,7 @@
  {
   "id": "fils-reseau",
   "q": "3 fils ou 4 fils : quel réseau convient à ma Smart ?",
-  "a": "La Smart EQ 22 kW a besoin d'un réseau de distribution à 4 fils (3×400 V + neutre). Elle fonctionne mal, voire pas du tout, sur un réseau à 3 fils (3×230 V, sans neutre).\n\nDétail : Le câble qui arrive de la rue contient soit 4 fils, soit 3. Avec 4 fils, il y a trois phases (L1, L2, L3) et un fil neutre (N) fourni par le distributeur : c'est le réseau 3×400 V + neutre. Avec 3 fils, il n'y a que les trois phases et pas de neutre : c'est le réseau 3×230 V. Attention à ne pas confondre : le 4ᵉ fil du réseau est le neutre, ce n'est pas la terre. La « terre » est une autre protection, installée chez vous (en général un piquet planté dans le sol ou une boucle de terre) : elle est propre à votre maison, elle ne vient pas du réseau et elle n'a rien à voir avec les 3 ou 4 fils du câble de la rue. Que la terre de votre maison soit bonne ou non ne dit donc rien sur la présence d'un neutre dans le réseau. Pour savoir de quel réseau vous êtes alimenté, voir « Comment savoir quel réseau alimente mon logement ? » ; une mesure ou une confirmation du gestionnaire de réseau reste nécessaire.",
+  "a": "La Smart EQ 22 kW a besoin d'un réseau de distribution à 4 fils (3×400 V + neutre). Elle fonctionne mal, voire pas du tout, sur un réseau à 3 fils (3×230 V, sans neutre).\n\nDétail : Le câble qui arrive de la rue contient soit 4 fils, soit 3. Avec 4 fils, il y a trois phases (L1, L2, L3) et un fil neutre (N) fourni par le distributeur : c'est le réseau 3×400 V + neutre. Avec 3 fils, il n'y a que les trois phases et pas de neutre : c'est le réseau 3×230 V. Attention à ne pas confondre : le 4ᵉ fil du réseau est le neutre, ce n'est pas la terre. La « terre » est une autre protection, installée chez vous (en général un piquet planté dans le sol ou une boucle de terre) : elle est propre à votre maison, elle ne vient pas du réseau et elle n'a rien à voir avec les 3 ou 4 fils du câble de la rue. Que la terre de votre maison soit bonne ou non ne dit donc rien sur la présence d'un neutre dans le réseau. Pour savoir de quel réseau vous êtes alimenté, voir « Comment savoir quel réseau alimente mon logement ? » ; une mesure ou une confirmation du gestionnaire de réseau reste nécessaire. Avoir 4 fils ne garantit pas à lui seul que la voiture chargera : seule une mesure ou une confirmation du gestionnaire tranche.",
   "src": "Brugel 2020 ; Sibelga SIB23 ; explications du projet",
   "img": "faq-fils-reseau.png",
   "sec": "En deux minutes"
@@ -69,7 +69,7 @@
  {
   "id": "pays",
   "q": "Dans quels pays le problème existe-t-il ?",
-  "a": "Surtout la Belgique (Bruxelles en tête) et la Norvège, avec des poches locales ailleurs.\n\nDétail : Norvège : environ 70 à 80 % des logements/du réseau en 230 V de type IT (NAF, NVE, installateurs) : le cas le plus connu. Belgique : 88 % du réseau bruxellois en 230 V selon Brugel (37 % du câblage sans neutre) ; 20 à 30 % des installations en Flandre et à Bruxelles selon Eniris ; environ 25 à 27 % des clients de Fluvius en 230 V (chiffres anciens, dont très peu sans neutre). France, Italie (centre de Rome), Portugal : des zones existent (installateurs, fabricants), sans pourcentage publié. Allemagne, Pays-Bas, Suède, Finlande, Suisse, Danemark : réseaux 230/400 V avec neutre ou terre solide ; le problème de réseau y est probablement rare (non chiffré). Une mauvaise prise de terre peut en outre faire refuser la Zoé partout. Aucun chiffre mondial n'existe ; ce n'est pas uniquement belge.",
+  "a": "Surtout la Belgique (Bruxelles en tête) et la Norvège, avec des poches locales ailleurs.\n\nDétail : Norvège : environ 70 % des logements/du réseau en 230 V de type IT (NAF ; un revendeur écrit 80 %) : le cas le plus connu. Belgique : 88 % du réseau bruxellois en 230 V selon Brugel (37 % du câblage sans neutre) ; 20 à 30 % des installations en Flandre et à Bruxelles selon Eniris ; environ 25 à 27 % des clients de Fluvius en 230 V (chiffres anciens, dont très peu sans neutre). France, Italie (centre de Rome), Portugal : des zones existent (installateurs, fabricants), sans pourcentage publié. Allemagne, Pays-Bas, Suède, Finlande, Suisse, Danemark : réseaux 230/400 V avec neutre ou terre solide ; le problème de réseau y est probablement rare (non chiffré). Une mauvaise prise de terre peut en outre faire refuser la Zoé partout. Aucun chiffre mondial n'existe ; ce n'est pas uniquement belge.",
   "src": "NAF ; NVE ; Brugel 2020 ; Eniris ; Fluvius ; installateurs",
   "sec": "Comprendre"
  },
@@ -136,7 +136,7 @@
  {
   "id": "transfo",
   "q": "Un transformateur règle-t-il le problème ?",
-  "a": "En principe oui : posé par un électricien, il reçoit le 3×230 V du réseau et le transforme en un réseau 3×400 V + neutre. Brugel ne connaissait pas de solution pour la Smart en 2020.\n\nDétail : Avertissement : ne reliez jamais vous-même un neutre à la terre, n'achetez aucun adaptateur qui simule un neutre ou une terre, ne modifiez aucune protection. Un transformateur se pose par un électricien, avec sa propre protection. Fonctionnement : un transformateur de séparation (isolement) reçoit le 3×230 V du réseau et en refait un réseau séparé 3×400 V + neutre (400 V entre phases, 230 V entre chaque phase et le neutre), dont le neutre est relié à la terre : c'est le neutre que la voiture attend. Un autotransformateur coûte moins cher mais ne permet pas de relier le neutre à la terre et tolère au plus 10 % de déséquilibre. Brugel (2020) évoque un surcoût allant jusqu'à 4 000 € TVAC pour un transformateur d'isolement ou un câble spécial (neutre virtuel, cité pour la Zoé seulement) et ne connaissait pas de solution pour la Smart. Inconvénients : coût, encombrement, pertes, et selon le modèle une charge limitée ou lente. Le circuit aval est un nouveau réseau : prévoir sa protection propre (fusible, différentiel adapté), car les différentiels en amont ne voient pas ses défauts. À Bruxelles, le 11 kW triphasé sur 3×230 V n'est admis qu'avec un transformateur d'isolement.",
+  "a": "En principe oui : posé par un électricien, il reçoit le 3×230 V du réseau et le transforme en un réseau 3×400 V + neutre. Brugel ne connaissait pas de solution pour la Smart en 2020.\n\nDétail : Avertissement : ne reliez jamais vous-même un neutre à la terre, n'achetez aucun adaptateur qui simule un neutre ou une terre, ne modifiez aucune protection. Un transformateur se pose par un électricien, avec sa propre protection. Fonctionnement : un transformateur de séparation (isolement) reçoit le 3×230 V du réseau et en refait un réseau séparé 3×400 V + neutre (400 V entre phases, 230 V entre chaque phase et le neutre), dont le neutre est relié à la terre : c'est le neutre que la voiture attend. Un autotransformateur coûte moins cher mais ne permet pas de relier le neutre à la terre et tolère peu de déséquilibre entre phases (5 à 10 % selon les sources). Brugel (2020) évoque un surcoût allant jusqu'à 4 000 € TVAC pour un transformateur d'isolement ou un câble spécial (neutre virtuel, cité pour la Zoé seulement) et ne connaissait pas de solution pour la Smart. Inconvénients : coût, encombrement, pertes, et selon le modèle une charge limitée ou lente. Le circuit aval est un nouveau réseau : prévoir sa protection propre (fusible, différentiel adapté), car les différentiels en amont ne voient pas ses défauts. À Bruxelles, le 11 kW triphasé sur 3×230 V n'est admis qu'avec un transformateur d'isolement. Un transformateur monophasé prêté à un utilisateur a permis une charge lente : voir « Une Smart a-t-elle déjà chargé derrière un transformateur ? ». Différence avec l'autotransformateur : voir « Transformateur de séparation ou autotransformateur ».",
   "src": "Brugel 2020 ; EREA (neutre et bornes de recharge) ; Sibelga SIB23 §4.1.2",
   "sec": "Chez moi",
   "img": "faq-transformateur.png"
@@ -144,14 +144,51 @@
  {
   "id": "transfo-portable",
   "q": "Existe-t-il un transformateur portable ?",
-  "a": "Des revendeurs norvégiens en vendent ; c'est rapporté, pas vérifié pour la Belgique.\n\nDétail : NoFuel et Elbilgrossisten proposent des transformateurs d'isolement portables (prise domestique vers Type 2, environ 10 A, charge lente), cités pour la Zoé, la Kangoo, le Townstar et l'eCitan ; la Smart n'est pas nommée. Un modèle Type 2 des deux côtés est aussi présenté comme utilisable sur borne publique ; son usage sur les bornes belges (conditions des exploitants, sécurité) n'est pas vérifié. Ne branchez rien sur une borne publique sans l'accord de l'exploitant, et n'achetez jamais d'adaptateur qui simule un neutre ou une terre.",
+  "a": "Des revendeurs norvégiens en vendent ; c'est rapporté, pas vérifié pour la Belgique.\n\nDétail : NoFuel et Elbilgrossisten proposent des transformateurs d'isolement portables (monophasés, prise domestique vers Type 2, environ 10 A, soit 2,3 à 3,7 kW, charge lente ; Renault a présenté en Norvège en 2014 un mini-transformateur pour la Zoé, jusqu'à environ 10 heures de charge), cités pour la Zoé, la Kangoo, le Townstar et l'eCitan ; la Smart n'est pas nommée. Un modèle Type 2 des deux côtés est aussi présenté comme utilisable sur borne publique ; son usage sur les bornes belges (conditions des exploitants, sécurité) n'est pas vérifié. Ne branchez rien sur une borne publique sans l'accord de l'exploitant, et n'achetez jamais d'adaptateur qui simule un neutre ou une terre.",
   "src": "NoFuel ; Elbilgrossisten (revendeurs, non vérifié)",
   "sec": "Chez moi"
  },
  {
+  "id": "transfo-vs-auto",
+  "q": "Transformateur de séparation ou autotransformateur : quelle différence ?",
+  "a": "Le transformateur de séparation a deux bobines sans lien électrique : l'électricien peut relier le neutre de sa sortie à la terre. L'autotransformateur n'a qu'une bobine : le neutre de sa sortie ne peut pas être relié à la terre.\n\nDétail : Pour la Smart et la Zoé, ce qui compte est un neutre « propre » (tension neutre–terre proche de 0 V). Seul le transformateur de séparation le permet (EREA). Sibelga ne cite que lui pour un 11 kW triphasé en 3×230 V. L'autotransformateur est plus petit et moins cher, mais son neutre « flotte » ; la Zoé mesure sa boucle de terre en envoyant une impulsion de courant (principe décrit par un fabricant danois), ce qui pourrait échouer. Pas d'essai connu avec une Smart : ne l'achetez pas sur la seule promesse d'un vendeur. Les sources divergent sur le déséquilibre admis entre phases (5 % dans un livre blanc EREA de 2024, 10 % dans une note de 2020) : demandez la valeur au fabricant. Dans les deux cas, pose et protections par un électricien agréé. Ne confondez pas avec un testeur de prise : ce petit boîtier ne transforme rien, il indique seulement ce qu'il détecte.",
+  "src": "EREA (neutre et bornes de recharge) ; Sibelga SIB23 §4.1.2 ; fabricant de bornes danois (principe de mesure de la Zoé)",
+  "img": "faq-trois-appareils.png",
+  "sec": "Chez moi"
+ },
+ {
+  "id": "cas-transfo-observe",
+  "q": "Une Smart a-t-elle déjà chargé derrière un transformateur ?",
+  "a": "Oui, un cas rapporté : lent (environ 2 à 3 kW), mais ça a chargé.\n\nDétail : Un utilisateur bruxellois (2025) a vu sa Smart EQ 22 kW refuser sur une prise en 3×230 V (voyant orange, cycles), puis charger derrière un transformateur de séparation monophasé de 2,5 kVA prêté par son vendeur, branché sur une prise murale ordinaire. Il se souvient qu'il fallait compter toute la nuit. Le raccordement du neutre à la terre au secondaire n'a pas été vérifié : c'est un cas observé, pas une preuve du mécanisme. Un transformateur monophasé de 2,5 kVA limite à environ 2,3–2,5 kW, soit environ le dixième de ce que le chargeur 22 kW peut faire. Ne copiez pas ce montage : un transformateur se choisit, se câble et se protège par un électricien agréé.",
+  "src": "Observation d'un utilisateur (P.F.) ; fiche technique du transformateur",
+  "img": "faq-transfo-prete.png",
+  "sec": "Chez moi"
+ },
+ {
+  "id": "bornes-3x230",
+  "q": "Une borne dite « triphasée 3×230 V » règle-t-elle le problème ?",
+  "a": "Probablement pas : elle accepte ce réseau, mais ne crée pas de neutre à la terre.\n\nDétail : Plusieurs fabricants (Zaptec Go, Easee, Wallbox, Peblar, Alfen, Smappee) décrivent des montages pour le 3×230 V sans neutre ; certains désactivent le contrôle de terre côté borne. Cela règle le refus de la borne, pas celui de la voiture : une phase y sert de neutre, à environ 133 V de la terre. Sur 3×230 V, une borne 11 kW (3 × 16 A) ne fournit que 6,4 kW ; une borne monophasée 32 A, 7,4 kW. Aucune de ces bornes n'est documentée comme réglant le cas de la Smart ou de la Zoé. Un vendeur qui promet le contraire : demandez-le par écrit.",
+  "src": "Documentations des fabricants cités (lues le 18/11/2026)",
+  "sec": "Chez moi"
+ },
+ {
+  "id": "demander-changement",
+  "q": "Comment demander à mon gestionnaire de réseau de changer mon raccordement ?",
+  "a": "Par le formulaire en ligne de votre gestionnaire (Sibelga, Fluvius, ORES, RESA, AIESH, AIEG…), avec votre code EAN ; rien n'est garanti.\n\nDétail : Bruxelles = Sibelga (formulaire « Modifier la puissance » sur my.sibelga.be, connexion requise) ; Flandre = Fluvius (Mijn Fluvius) ; Wallonie = ORES, RESA (Liège), AIESH, AIEG ou REW selon la commune (recherche par code postal sur le site de la CWaPE). Préparez : code EAN (facture ou compteur), photos du compteur et du tableau, type de réseau actuel (compteur « 133/230 V » = 3×230 V), puissance souhaitée, et la mention « souhait de 3×400 V + neutre ». Les pages lues ne décrivent pas de procédure nommée « passer de 3×230 V à 3×400 V + N » : seuls Fluvius, ORES et RESA l'abordent ; le gestionnaire peut refuser, demander des travaux ou un devis. Aucun délai ni prix lu partout. L'app ne remplit rien à votre place et n'envoie rien.",
+  "src": "Sites des gestionnaires de réseau (lus le 18/11/2026)",
+  "sec": "Chez moi"
+ },
+ {
+  "id": "voyant-prise",
+  "q": "Que signifie le voyant de la prise de ma Smart ?",
+  "a": "Vert = charge en cours ou terminée ; orange = attente ou pause ; rouge clignotant rapide = défaut.\n\nDétail (manuel en ligne de la smart EQ fortwo) : vert clignotant lent = charge en cours ; vert fixe = batterie pleine ; orange clignotant lent = attente du démarrage de la charge ; orange fixe = charge en pause ; rouge clignotant rapide = défaut. Sur une borne qui refuse, des utilisateurs décrivent un voyant orange qui reprend en boucle, puis s'éteint : ce comportement n'est pas documenté par le constructeur ; notez-le comme « ne charge pas ».",
+  "src": "Manuel en ligne smart EQ fortwo ; témoignages d'utilisateurs",
+  "sec": "Sur la route"
+ },
+ {
   "id": "avant-borne",
   "q": "Avant d'investir dans une borne à domicile, que faire ?",
-  "a": "1) Identifier le réseau (compteur, EAN, gestionnaire). 2) Si c'est du 3×230 V, considérer que la Smart 22 kW risque de refuser sans neutre pur. 3) Essayer d'abord en conditions réelles, par exemple avec un transformateur ou une borne prêtés, avant d'acheter. 4) Demander au vendeur par écrit si la borne fonctionne en 3×230 V et en l'absence de neutre. 5) Notifier la borne au gestionnaire (obligatoire à Bruxelles). 6) Garder en tête les autres options : recharge sur bornes publiques en 400 V + N (voir la carte), ou conversion du bâtiment en 400 V + N demandée au gestionnaire, aux frais du demandeur.",
+  "a": "1) Identifier le réseau (compteur, EAN, gestionnaire). 2) Si c'est du 3×230 V, considérer que la Smart 22 kW risque de refuser sans neutre pur : une borne dite « triphasée 3×230 V » n'y change probablement rien (voir « Une borne triphasée 3×230 V règle-t-elle le problème ? »). 3) Essayer d'abord en conditions réelles, par exemple avec un transformateur ou une borne prêtés, avant d'acheter. 4) Demander au vendeur par écrit si la borne fonctionne en 3×230 V et en l'absence de neutre. 5) Notifier la borne au gestionnaire (obligatoire à Bruxelles). 6) Garder en tête les autres options : recharge sur bornes publiques en 400 V + N (voir la carte), ou conversion du bâtiment en 400 V + N demandée au gestionnaire, aux frais du demandeur (voir « Comment demander à mon gestionnaire de réseau de changer mon raccordement ? »).",
   "src": "Sibelga SIB23 §4.4, §5.1",
   "sec": "Chez moi"
  },
@@ -268,8 +305,8 @@
  },
  {
   "id": "limites",
-  "q": "Cette app remplace-t-elle l'avis d'un professionnel ?",
-  "a": "Non. Elle rassemble des relevés d'utilisateurs et des informations publiques. Pour toute décision sur une installation (borne, transformateur, mesures), l'avis d'un électricien agréé et du gestionnaire de réseau prime. N'ouvrez jamais un tableau électrique ni un compteur pour « tester ».",
+  "q": "Cette app remplace-t-elle l'avis d'un professionnel ? Que ne fait-elle pas ?",
+  "a": "Non. Elle rassemble des relevés d'utilisateurs et des informations publiques. Pour toute décision sur une installation (borne, transformateur, mesures), l'avis d'un électricien agréé et du gestionnaire de réseau prime. N'ouvrez jamais un tableau électrique ni un compteur pour « tester ».\n\nDétail : L'app ne dit pas si une borne est libre en temps réel, ne vous fait pas payer, ne planifie pas d'itinéraire et ne garantit jamais qu'une borne marchera. Elle n'a ni compte ni photos, ne mesure rien chez vous et ne modifie aucune installation. Elle ne suit que les modèles de la liste. Elle existe pour Android seulement (GitHub ou F-Droid) ; une version iPhone n'est pas prévue pour le moment. L'interface et la FAQ sont en français ; une version néerlandaise et anglaise est à l'étude.",
   "src": "—",
   "sec": "L'application et mes données"
  },

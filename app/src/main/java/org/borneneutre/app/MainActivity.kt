@@ -235,15 +235,15 @@ fun App() {
     val osmStations = remember(fetchedOsm, embeddedOsm) { (fetchedOsm + embeddedOsm).distinctBy { it.id } }
     var commuStations by remember { mutableStateOf<List<Station>>(emptyList()) }
     var commuReleves by remember { mutableStateOf<List<Releve>>(emptyList()) }
-    val stations = remember(userStations, commuStations, allFiches, osmStations) {
-        val osmIds = osmStations.map { it.id }.toSet()
+    var screenOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
+    var cacheOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
+    var flStations by remember { mutableStateOf<List<Station>>(emptyList()) }
+    val stations = remember(userStations, commuStations, allFiches, osmStations, bxStations, flStations, screenOsm, cacheOsm) {
+        val osmIds = (osmStations + bxStations + flStations + screenOsm + cacheOsm).map { it.id }.toSet()
         val s0 = (seedStations + userStations).let { base -> base + commuStations.filter { c -> c.id !in osmIds && base.none { it.id == c.id } } }
         s0 + Fiches.extraStations(allFiches, (s0 + osmStations).map { it.id }.toSet())
     }
     val releves = remember(userReleves, commuReleves) { seedReleves + userReleves + commuReleves }
-    var screenOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
-    var cacheOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
-    var flStations by remember { mutableStateOf<List<Station>>(emptyList()) }
     val otherSources = remember(flStations, bxStations, screenOsm, cacheOsm) { flStations + bxStations + screenOsm + cacheOsm }
     val byId = remember(stations, osmStations, otherSources) { (otherSources + osmStations + stations).associateBy { it.id } }
     var myCar by remember { mutableStateOf(Store.loadCar(ctx)) }
@@ -398,7 +398,9 @@ fun App() {
             if (cp != null && t != null && cp.zoom >= 12.0) loadScreen(t.latitude, t.longitude, 1500)
             else Toast.makeText(ctx, "Zoomez sur la zone voulue (rue ou quartier), puis choisissez de nouveau ce mode.", Toast.LENGTH_LONG).show()
         }
-        if (m == 3) requireLocation { locate { loc -> myPos = LatLng(loc.latitude, loc.longitude); loadScreen(loc.latitude, loc.longitude, 2000) } }
+        if (m == 3) requireLocation { locate { loc -> myPos = LatLng(loc.latitude, loc.longitude)
+            // Position arrondie (≈ 1 km) avant tout envoi aux serveurs de listes ouvertes : l'adresse exacte ne leur est jamais transmise ; rayon élargi en compensation.
+            loadScreen(Math.round(loc.latitude * 100) / 100.0, Math.round(loc.longitude * 100) / 100.0, 3000) } }
     }
 
     // Liste mensuelle (case « Actualiser la liste de bornes ») : une seule requête par mois, zone Bruxelles-Enghien, gardée sur le téléphone.
@@ -659,7 +661,7 @@ fun App() {
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
                     androidx.compose.material3.Checkbox(checked = autoRefresh, onCheckedChange = { autoRefresh = it; prefs.edit().putBoolean("auto_refresh", it).apply() })
-                    Text("Actualiser les bornes autour de ma position (une fois par mois ; télécharge environ 1 à 2 Mo depuis OpenStreetMap). La liste de Belgique est déjà intégrée à l'application.", fontSize = 12.sp)
+                    Text("Actualiser les bornes de la région de Bruxelles (zone fixe : votre position n'est pas envoyée ; une fois par mois ; télécharge environ 1 à 2 Mo depuis OpenStreetMap). La liste de Belgique est déjà intégrée à l'application.", fontSize = 12.sp)
                 }
                 Text("Pour une autre zone du mode « zone affichée » : zoomez, puis rechoisissez ce mode.", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.padding(top = 6.dp))
             }
@@ -1074,7 +1076,7 @@ fun MapContainer(
                 map.setStyle(Style.Builder().fromUri(OFM_STYLE_URL)) { st -> installLayers(st) }
                 map.addOnMapClickListener { ll ->
                     val pt = map.projection.toScreenLocation(ll)
-                    val feats = map.queryRenderedFeatures(pt, "st")
+                    val feats = map.queryRenderedFeatures(pt, "st", "st-un")
                     val id = feats.firstOrNull()?.getStringProperty("id")
                     if (id != null) onStationTap(id) else onMapTap(ll)
                     true

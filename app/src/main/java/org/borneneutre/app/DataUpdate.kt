@@ -16,7 +16,15 @@ object DataUpdate {
     private const val CHECK_EVERY_MS = 30L * 24 * 3600 * 1000
 
     /** Fichier téléchargé s'il existe et reste lisible, sinon null (l'appelant retombe sur l'asset). */
-    fun localFile(ctx: Context, name: String): File? = File(ctx.filesDir, name).takeIf { it.isFile && it.length() > 100 }
+    fun localFile(ctx: Context, name: String): File? =
+        File(ctx.filesDir, name).takeIf { it.isFile && it.length() > 100 && currentDate(ctx) >= EMBEDDED_DATE } // une liste téléchargée plus ancienne que celle embarquée (après mise à jour de l'app) est ignorée
+
+    /** Écriture atomique : fichier temporaire puis renommage, pour qu'une coupure ne laisse jamais un fichier tronqué. */
+    private fun writeAtomic(f: File, text: String) {
+        val tmp = File(f.parentFile, f.name + ".tmp")
+        tmp.writeText(text)
+        if (!tmp.renameTo(f)) { f.delete(); if (!tmp.renameTo(f)) { tmp.delete(); throw java.io.IOException("renommage impossible") } }
+    }
 
     fun currentDate(ctx: Context): String =
         ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE).getString("data_date", null) ?: EMBEDDED_DATE
@@ -44,7 +52,7 @@ object DataUpdate {
             // contrôle de plausibilité avant de remplacer quoi que ce soit
             val nOsm = Overpass.parse(osm).size; val nBxl = Brussels.parse(bxl).size
             if (nOsm < 1000 || nBxl < 100) { DiagLog.add("Mise à jour listes refusée : OSM $nOsm, Bruxelles $nBxl"); return false to "Fichiers reçus incomplets, ignorés." }
-            File(ctx.filesDir, OSM_FILE).writeText(osm); File(ctx.filesDir, BXL_FILE).writeText(bxl)
+            writeAtomic(File(ctx.filesDir, OSM_FILE), osm); writeAtomic(File(ctx.filesDir, BXL_FILE), bxl)
             prefs.edit().putString("data_date", remote).apply()
             DiagLog.add("Mise à jour listes : $remote, OSM $nOsm, Bruxelles $nBxl")
             true to "Listes mises à jour ($remote) : $nOsm bornes OpenStreetMap, $nBxl à Bruxelles."
