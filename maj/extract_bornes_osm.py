@@ -51,7 +51,9 @@ def main(a):
     if len(a) < 3 or a[0] not in ("--geojsonseq", "--overpass"):
         sys.exit(__doc__)
     els = depuis_geojsonseq(a[1]) if a[0] == "--geojsonseq" else depuis_overpass(a[1])
-    els.sort(key=lambda e: (e["type"], e["id"]))
+    uniques = {}
+    for e in els: uniques.setdefault((e["type"], e["id"]), e)   # osmium exporte parfois une voie deux fois (ligne et surface)
+    els = sorted(uniques.values(), key=lambda e: (e["type"], e["id"]))
     if len(els) < 3000:                      # garde-fou : la Belgique compte plus de 6 000 bornes (liste du 17/11/2026)
         sys.exit("Trop peu de bornes (%d) : extraction refusée, fichier non écrit." % len(els))
     aujourdhui = datetime.date.today()
