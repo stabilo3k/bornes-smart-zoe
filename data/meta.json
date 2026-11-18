@@ -1,1 +1,6 @@
-{"date":"2026-11-17","osm":"bornes-be-osm.json","bxl":"bornes-bruxelles.json","note":"Listes de bornes (OpenStreetMap ODbL ; Bruxelles Mobilité CC BY). Voir DATA-LICENCE.md."}
+{
+ "date": "2026-11-18",
+ "osm": "bornes-be-osm.json",
+ "bxl": "bornes-bruxelles.json",
+ "note": "Listes de bornes (OpenStreetMap ODbL ; Bruxelles Mobilité CC BY). Voir DATA-LICENCE.md."
+}
