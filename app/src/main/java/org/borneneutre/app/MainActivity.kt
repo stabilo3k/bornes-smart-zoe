@@ -60,6 +60,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.widget.Toast
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.lightColorScheme
@@ -216,6 +217,21 @@ fun App() {
         }
     }
     LaunchedEffect(Unit) { embeddedOsm = withContext(Dispatchers.Default) { Store.loadEmbeddedOsm(ctx) } }
+    var appUpd by remember { mutableStateOf<AppUpdate.Info?>(null) }
+    LaunchedEffect(Unit) { if (AppUpdate.due(ctx)) appUpd = withContext(Dispatchers.IO) { AppUpdate.check(ctx).first } }
+    appUpd?.let { u ->
+        AlertDialog(
+            onDismissRequest = { AppUpdate.snooze(ctx); appUpd = null },
+            title = { Text("Nouvelle version ${u.versionName}") },
+            text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Une version plus récente de l'application est disponible (vous avez la ${BuildConfig.VERSION_NAME}).", fontSize = 14.sp)
+                if (u.notes.isNotBlank()) Text(u.notes, fontSize = 13.sp)
+                Text("Le téléchargement démarre seulement si vous appuyez sur « Télécharger ». Ensuite, touchez la notification pour installer : Android vous demandera de confirmer. Vos relevés sont conservés.", fontSize = 12.sp, color = Color(0xFF4B5563))
+            } },
+            confirmButton = { TextButton(onClick = { val ok = AppUpdate.download(ctx, u); if (!ok) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(u.pageUrl))); appUpd = null }) { Text("Télécharger") } },
+            dismissButton = { Row { TextButton(onClick = { AppUpdate.snooze(ctx); appUpd = null }) { Text("Plus tard") }; TextButton(onClick = { AppUpdate.disable(ctx, true); appUpd = null }) { Text("Ne plus vérifier") } } }
+        )
+    }
     val osmStations = remember(fetchedOsm, embeddedOsm) { (fetchedOsm + embeddedOsm).distinctBy { it.id } }
     var commuStations by remember { mutableStateOf<List<Station>>(emptyList()) }
     var commuReleves by remember { mutableStateOf<List<Releve>>(emptyList()) }
@@ -877,6 +893,19 @@ fun AboutDialog(onDismiss: () -> Unit, onListsUpdated: () -> Unit = {}) {
                 Text("Liste de bornes embarquée : © contributeurs OpenStreetMap (licence ODbL), extraite le ${DataUpdate.currentDate(ctx)}. Bornes de Flandre : données ouvertes du Departement Mobiliteit en Openbare Werken (source Eco-Movement), licence Open Data Vlaanderen. Bornes de Bruxelles : données ouvertes de Bruxelles Mobilité (source Paradigm / Eco-Movement), licence CC BY. Les relevés et signalements de la communauté sont des données propres à l'application.", fontSize = 12.sp)
                 TextButton(enabled = !updBusy, onClick = { updBusy = true; updMsg = "Vérification…"; aScope.launch { val (ch, m) = withContext(Dispatchers.IO) { DataUpdate.update(ctx) }; updMsg = m; updBusy = false; if (ch) onListsUpdated() } }) { Text("Mettre à jour les listes de bornes maintenant") }
                 if (updMsg.isNotEmpty()) Text(updMsg, fontSize = 12.sp)
+                if (AppUpdate.isStoreInstall(AppUpdate.installer(ctx))) Text("Installée par un magasin d'applications : c'est lui qui gère les mises à jour de l'application.", fontSize = 12.sp, color = Color(0xFF4B5563))
+                else {
+                    var appUpdMsg by remember { mutableStateOf("") }
+                    var appOff by remember { mutableStateOf(AppUpdate.isDisabled(ctx)) }
+                    var found by remember { mutableStateOf<AppUpdate.Info?>(null) }
+                    TextButton(onClick = { appUpdMsg = "Vérification…"; found = null; aScope.launch { val (i, m) = withContext(Dispatchers.IO) { AppUpdate.check(ctx, true) }; appUpdMsg = m; found = i } }) { Text("Vérifier les mises à jour de l'application") }
+                    found?.let { f -> TextButton(onClick = { if (!AppUpdate.download(ctx, f)) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(f.pageUrl))); found = null }) { Text("Télécharger la version ${f.versionName}") } }
+                    if (appUpdMsg.isNotEmpty()) Text(appUpdMsg, fontSize = 12.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = !appOff, onCheckedChange = { appOff = !it; AppUpdate.disable(ctx, appOff) })
+                        Text("  Vérifier au lancement", fontSize = 13.sp)
+                    }
+                }
                 TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe/blob/main/DATA-LICENCE.md"))) }) { Text("Licences des données") }
                 TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe"))) }) { Text("Code source et signalement d'un problème") }
                 TextButton(onClick = { showLog = true }) { Text("Journal de diagnostic") }

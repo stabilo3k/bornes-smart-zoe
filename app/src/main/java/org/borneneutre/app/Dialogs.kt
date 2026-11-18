@@ -219,7 +219,7 @@ fun FicheDialog(s: Station, current: Fiche?, osmPoints: Int?, onDismiss: () -> U
                 }
                 androidx.compose.material3.OutlinedTextField(value = contact, onValueChange = { contact = it.take(20) }, label = { Text("Téléphone d'assistance (écrit sur la borne)") }, singleLine = true,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone))
-                Text("Le numéro d'assistance figure sur la borne ou son autocollant : il servira à prévenir l'exploitant d'une panne. Laissez vide ce que vous ne savez pas. Ces informations sont partagées anonymement et ne changent pas le verdict de compatibilité.", fontSize = 11.sp, color = Color.Gray)
+                Text("Le numéro d'assistance figure sur la borne ou son autocollant : il servira à prévenir l'exploitant d'une panne. Laissez vide ce que vous ne savez pas. Ces informations sont partagées anonymement et ne changent pas le verdict de compatibilité.", fontSize = 12.sp, color = Color(0xFF4B5563))
             }
         },
         confirmButton = {

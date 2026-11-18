@@ -1,0 +1,1 @@
+Vérification facultative des mises à jour au lancement (installation GitHub seulement, téléchargement sur appui). FAQ enrichie : réseau à 3 ou 4 fils, testeur de prise illustré, GitHub ou F-Droid. Aussi : verdict par modèle de voiture, motif du refus, heure des états de borne.

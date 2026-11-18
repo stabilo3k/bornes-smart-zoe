@@ -1,0 +1,1 @@
+Optional update check at launch (GitHub install only, download only on tap). FAQ: 3- or 4-wire grid, illustrated socket tester, GitHub vs F-Droid. Also: per-car verdict, refusal reason, charger status time.
