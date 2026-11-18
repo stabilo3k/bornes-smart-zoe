@@ -29,12 +29,15 @@ def depuis_geojsonseq(chemin):
         f = json.loads(ligne)
         tags = f.get("properties") or {}
         if tags.get("amenity") != "charging_station": continue
-        fid = str(f.get("id", ""))          # « n123 », « w456 », « r789 »
-        if not fid or fid[0] not in "nwr" or not fid[1:].isdigit(): continue
+        fid = str(f.get("id", ""))          # « n123 », « w456 », « r789 » ou « a… » (surface osmium : 2×id de voie, ou 2×id de relation + 1)
+        if not fid or fid[0] not in "nwra" or not fid[1:].isdigit(): continue
+        typ, num = {"n": "node", "w": "way", "r": "relation"}.get(fid[0]), int(fid[1:])
+        if fid[0] == "a":
+            typ, num = ("way", num // 2) if num % 2 == 0 else ("relation", num // 2)
         c = centre(f["geometry"]) if f.get("geometry") else None
         if not c: continue
-        e = {"type": {"n": "node", "w": "way", "r": "relation"}[fid[0]], "id": int(fid[1:]), "tags": tags}
-        if fid[0] == "n": e["lat"], e["lon"] = round(c[0], 7), round(c[1], 7)
+        e = {"type": typ, "id": num, "tags": tags}
+        if typ == "node": e["lat"], e["lon"] = round(c[0], 7), round(c[1], 7)
         else: e["center"] = {"lat": round(c[0], 7), "lon": round(c[1], 7)}
         out.append(e)
     return out
