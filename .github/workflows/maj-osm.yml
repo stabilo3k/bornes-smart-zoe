@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y osmium-tool
-      - run: curl -fsSL -o belgium.osm.pbf https://download.geofabrik.de/europe/belgium-latest.osm.pbf
+      - run: curl -fsSL --connect-timeout 30 --retry 5 --retry-all-errors --retry-delay 30 -o belgium.osm.pbf https://download.geofabrik.de/europe/belgium-latest.osm.pbf
       - run: osmium tags-filter belgium.osm.pbf nwr/amenity=charging_station -o bornes.osm.pbf
       - run: osmium export bornes.osm.pbf -f geojsonseq --add-unique-id=type_id -o bornes.geojsonl --overwrite
       - run: python3 maj/extract_bornes_osm.py --geojsonseq bornes.geojsonl data/bornes-be-osm.json data/meta.json
