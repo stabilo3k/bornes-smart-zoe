@@ -1,6 +1,7 @@
-# Extraction mensuelle des bornes OpenStreetMap de Belgique, sans Overpass (extrait Geofabrik).
+# Mise à jour mensuelle des listes de bornes : OpenStreetMap Belgique (extrait Geofabrik, sans Overpass), Bruxelles Mobilité (CC BY) et Service public de Wallonie (CC BY 4.0).
+# Chaque source est indépendante : l'échec d'une étape laisse l'ancien fichier en place. Une seule interrogation par mois et par source.
 # À placer dans le dépôt public par P.F. (rien n'est poussé par Claude). Données : © contributeurs OpenStreetMap, ODbL.
-name: maj-osm
+name: maj-donnees
 on:
   schedule: [{cron: "17 4 3 * *"}]     # le 3 de chaque mois, 04 h 17 UTC
   workflow_dispatch: {}
@@ -15,7 +16,18 @@ jobs:
       - run: osmium tags-filter belgium.osm.pbf nwr/amenity=charging_station -o bornes.osm.pbf
       - run: osmium export bornes.osm.pbf -f geojsonseq --add-unique-id=type_id -o bornes.geojsonl --overwrite
       - run: python3 maj/extract_bornes_osm.py --geojsonseq bornes.geojsonl data/bornes-be-osm.json data/meta.json
+      - name: Bruxelles (Bruxelles Mobilité, CC BY)
+        if: always()
+        continue-on-error: true
+        run: python3 maj/make_bxl.py data/bornes-bruxelles.new.json && mv data/bornes-bruxelles.new.json data/bornes-bruxelles.json
+      - name: Wallonie (SPW, CC BY 4.0)
+        if: always()
+        continue-on-error: true
+        run: |
+          pip install pyproj
+          python3 maj/make_wal.py data/bornes-wallonie.new.json && mv data/bornes-wallonie.new.json data/bornes-wallonie.json
+          python3 -c "import json; m=json.load(open('data/meta.json', encoding='utf-8')); m['wal']='bornes-wallonie.json'; json.dump(m, open('data/meta.json','w', encoding='utf-8'), ensure_ascii=False, indent=1)"
       - run: |
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/bornes-be-osm.json data/meta.json
-          git diff --cached --quiet || git commit -m "Liste OSM Belgique : extraction mensuelle" && git push
+          git add data/bornes-be-osm.json data/bornes-bruxelles.json data/bornes-wallonie.json data/meta.json
+          git diff --cached --quiet || git commit -m "Listes de bornes : mise à jour mensuelle (OSM, Bruxelles, Wallonie)" && git push
