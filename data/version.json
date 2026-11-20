@@ -1,7 +1,7 @@
 {
-  "versionCode": 60,
-  "versionName": "1.3.0",
-  "apk": "https://github.com/stabilo3k/bornes-smart-zoe/releases/download/v1.3.0/BorneNeutre-1.3.0.apk",
-  "page": "https://github.com/stabilo3k/bornes-smart-zoe/releases/tag/v1.3.0",
-  "notes": "Bouton Pastille (constat visuel), anneaux violets et gris (hypothèses à vérifier sur place), légende repliée, essais d'un autre modèle distingués, message de carte vide, FAQ corrigée et sourcée."
+  "versionCode": 71,
+  "versionName": "1.3.1",
+  "apk": "https://github.com/stabilo3k/bornes-smart-zoe/releases/download/v1.3.1/BorneNeutre-1.3.1-final.apk",
+  "page": "https://github.com/stabilo3k/bornes-smart-zoe/releases/tag/v1.3.1",
+  "notes": "Mise à jour mensuelle automatique des listes de bornes (OpenStreetMap, Bruxelles, Wallonie), menu « Bornes affichées » réorganisé, mode « Éclaireur », échec de téléchargement affiché, FAQ corrigée et sourcée."
 }
