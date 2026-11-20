@@ -1,9 +1,9 @@
-# Mise à jour mensuelle des listes de bornes : OpenStreetMap Belgique (extrait Geofabrik, sans Overpass), Bruxelles Mobilité (CC BY) et Service public de Wallonie (CC BY 4.0).
-# Chaque source est indépendante : l'échec d'une étape laisse l'ancien fichier en place. Une seule interrogation par mois et par source.
+# Mise à jour des listes de bornes : OpenStreetMap Belgique (extrait Geofabrik, sans Overpass) chaque jour ; Bruxelles Mobilité (CC BY) et Service public de Wallonie (CC BY 4.0) chaque dimanche (et à la demande), pour ne pas solliciter ces services plus que nécessaire.
+# Chaque source est indépendante : l'échec d'une étape laisse l'ancien fichier en place. Rythme quotidien provisoire, à ralentir (hebdomadaire) quand les résultats seront stables.
 # À placer dans le dépôt public par P.F. (rien n'est poussé par Claude). Données : © contributeurs OpenStreetMap, ODbL.
 name: maj-donnees
 on:
-  schedule: [{cron: "17 4 3 * *"}]     # le 3 de chaque mois, 04 h 17 UTC
+  schedule: [{cron: "17 4 * * *"}]     # chaque jour, 04 h 17 UTC
   workflow_dispatch: {}
 permissions: {contents: write}
 jobs:
@@ -16,12 +16,15 @@ jobs:
       - run: osmium tags-filter belgium.osm.pbf nwr/amenity=charging_station -o bornes.osm.pbf
       - run: osmium export bornes.osm.pbf -f geojsonseq --add-unique-id=type_id -o bornes.geojsonl --overwrite
       - run: python3 maj/extract_bornes_osm.py --geojsonseq bornes.geojsonl data/bornes-be-osm.json data/meta.json
-      - name: Bruxelles (Bruxelles Mobilité, CC BY)
+      - id: hebdo
         if: always()
+        run: echo "oui=$([ "$(date -u +%u)" = 7 ] || [ "${{ github.event_name }}" = workflow_dispatch ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
+      - name: Bruxelles (Bruxelles Mobilité, CC BY)
+        if: always() && steps.hebdo.outputs.oui == '1'
         continue-on-error: true
         run: python3 maj/make_bxl.py data/bornes-bruxelles.new.json && mv data/bornes-bruxelles.new.json data/bornes-bruxelles.json
       - name: Wallonie (SPW, CC BY 4.0)
-        if: always()
+        if: always() && steps.hebdo.outputs.oui == '1'
         continue-on-error: true
         run: |
           pip install pyproj
@@ -30,4 +33,4 @@ jobs:
       - run: |
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/bornes-be-osm.json data/bornes-bruxelles.json data/bornes-wallonie.json data/meta.json
-          git diff --cached --quiet || git commit -m "Listes de bornes : mise à jour mensuelle (OSM, Bruxelles, Wallonie)" && git push
+          git diff --cached --quiet || git commit -m "Listes de bornes : mise à jour automatique (OSM chaque jour ; Bruxelles et Wallonie chaque dimanche)" && git push
