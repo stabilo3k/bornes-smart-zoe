@@ -1,0 +1,1 @@
+Mise à jour mensuelle automatique des listes de bornes (OpenStreetMap, Bruxelles Mobilité, Wallonie SPW CC BY 4.0). Menu « Bornes affichées » réorganisé : « Compléter en ligne » et mode « Éclaireur ». L'échec d'un téléchargement est affiché avec sa raison. FAQ corrigée et sourcée.

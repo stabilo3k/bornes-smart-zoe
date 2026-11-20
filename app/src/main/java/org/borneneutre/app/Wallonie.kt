@@ -10,7 +10,9 @@ object Wallonie {
     const val SOURCE = "Source : Service public de Wallonie (SPW) - Infrastructures de recharge pour véhicules électriques en Wallonie (2026-01-30)"
 
     fun parse(json: String): List<Station> {
-        val arr = JSONObject(json).optJSONArray("stations") ?: return emptyList()
+        val root = JSONObject(json)
+        val src = root.optString("source", "").ifBlank { SOURCE } // la date des données est écrite dans le fichier
+        val arr = root.optJSONArray("stations") ?: return emptyList()
         val out = ArrayList<Station>(arr.length())
         for (i in 0 until arr.length()) {
             val r = arr.getJSONObject(i)
@@ -19,7 +21,7 @@ object Wallonie {
             val kw = r.optDouble("kw", 0.0); if (kw > 0) tags.put("charging_station:output", "${if (kw % 1.0 == 0.0) kw.toInt().toString() else kw.toString()} kW")
             if (r.optInt("s", 0) == 1) tags.put("access", "semipublic")
             r.optString("a", "").takeIf { it.isNotBlank() }?.let { tags.put("addr:full", it) }
-            tags.put("source", SOURCE)
+            tags.put("source", src)
             val op = r.optString("o", "")
             val dc = r.optString("c", "AC") == "DC" || Overpass.isFastOperator(op)
             out.add(Station("wal-" + r.optString("i", i.toString()), (if (op.isNotBlank()) op else "Borne (Wallonie)") + (r.optString("a", "").takeIf { it.isNotBlank() }?.let { " – $it" } ?: ""), op,
@@ -28,6 +30,10 @@ object Wallonie {
         return out
     }
 
-    fun loadEmbedded(ctx: Context): List<Station> =
-        try { parse(ctx.assets.open("bornes-wallonie.json").bufferedReader().readText()) } catch (e: Exception) { emptyList() }
+    /** Liste téléchargée (mise à jour mensuelle) si elle existe et reste lisible, sinon liste embarquée. */
+    fun loadEmbedded(ctx: Context): List<Station> {
+        val local = try { DataUpdate.localFile(ctx, DataUpdate.WAL_FILE)?.let { parse(it.readText()) } } catch (e: Exception) { null }
+        if (local != null && local.size >= 1000) return local
+        return try { parse(ctx.assets.open("bornes-wallonie.json").bufferedReader().readText()) } catch (e: Exception) { emptyList() }
+    }
 }

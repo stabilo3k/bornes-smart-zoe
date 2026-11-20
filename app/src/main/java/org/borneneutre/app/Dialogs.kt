@@ -44,13 +44,17 @@ import java.time.LocalDate
 
 /** Ligne de choix dont toute la largeur répond au toucher (au moins 48 dp de haut) : le texte compte, pas seulement le rond. */
 @Composable
-fun ChoiceRow(selected: Boolean, text: String, fontSize: Int = 14, onClick: () -> Unit) {
+fun ChoiceRow(selected: Boolean, text: String, fontSize: Int = 14, detail: String? = null, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(selected = selected, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected = selected, onClick = null)
-        Text(text, fontSize = fontSize.sp, modifier = Modifier.padding(start = 8.dp))
+        if (detail == null) Text(text, fontSize = fontSize.sp, modifier = Modifier.padding(start = 8.dp))
+        else Column(Modifier.padding(start = 8.dp, top = 6.dp, bottom = 6.dp)) {
+            Text(text, fontSize = fontSize.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            Text(detail, fontSize = 12.sp, color = androidx.compose.ui.graphics.Color(0xFF4B5563))
+        }
     }
 }
 
@@ -67,7 +71,7 @@ fun CheckRow(checked: Boolean, text: String, fontSize: Int = 13, onChange: (Bool
 }
 
 @Composable
-private fun Choice(selected: Boolean, text: String, onClick: () -> Unit) = ChoiceRow(selected, text, 14, onClick)
+private fun Choice(selected: Boolean, text: String, onClick: () -> Unit) = ChoiceRow(selected, text, 14, null, onClick)
 
 /** « Qui a fait l'essai ? » : sur place (état), moi mais plus sur place (relevé réel à distance, date choisie), ou un tiers (déclaré, non testé). */
 @Composable

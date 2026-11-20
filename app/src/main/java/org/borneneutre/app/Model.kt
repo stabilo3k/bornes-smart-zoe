@@ -297,7 +297,7 @@ object StationInfo {
 
     /** Origine de la fiche, d'après l'identifiant : liste OpenStreetMap, données ouvertes flamandes ; null pour les bornes de la communauté. */
     fun sourceLabel(s: Station): String? = when {
-        s.id.startsWith("fl-") -> "Open Data Vlaanderen / Eco-Movement"
+        s.id.startsWith("fl-") -> "Données ouvertes flamandes (Département MOW) / Eco-Movement"
         s.id.startsWith("bx-") -> Brussels.SOURCE
         s.id.startsWith("wal-") -> "SPW Wallonie (CC BY 4.0)"
         s.id.startsWith("osm-") -> "OpenStreetMap"
@@ -316,7 +316,7 @@ object StationInfo {
 
 
 /** Date de l'extraction de la liste de bornes OpenStreetMap embarquée (affichée dans « À propos »). */
-const val OSM_LIST_DATE = "17/11/2026"
+const val OSM_LIST_DATE = "20/11/2026"
 
 /** États de borne signalés (hors verdict de compatibilité). « Déclaré » = rapporté par un tiers, non testé. */
 enum class EtatKind(val code: String, val label: String, val ttlHours: Int, val declaredOnly: Boolean) {

@@ -10,9 +10,10 @@ import java.net.URL
  *  Les fichiers téléchargés remplacent ceux embarqués ; en cas d'échec, les fichiers embarqués restent utilisés. */
 object DataUpdate {
     const val BASE = "https://raw.githubusercontent.com/stabilo3k/bornes-smart-zoe/main/data/"
-    const val EMBEDDED_DATE = "2026-11-17"
+    const val EMBEDDED_DATE = "2026-11-20"
     const val OSM_FILE = "bornes-be-osm.json"
     const val BXL_FILE = "bornes-bruxelles.json"
+    const val WAL_FILE = "bornes-wallonie.json"
     private const val CHECK_EVERY_MS = 30L * 24 * 3600 * 1000
 
     /** Fichier téléchargé s'il existe et reste lisible, sinon null (l'appelant retombe sur l'asset). */
@@ -53,9 +54,17 @@ object DataUpdate {
             val nOsm = Overpass.parse(osm).size; val nBxl = Brussels.parse(bxl).size
             if (nOsm < 1000 || nBxl < 100) { DiagLog.add("Mise à jour listes refusée : OSM $nOsm, Bruxelles $nBxl"); return false to "Fichiers reçus incomplets, ignorés." }
             writeAtomic(File(ctx.filesDir, OSM_FILE), osm); writeAtomic(File(ctx.filesDir, BXL_FILE), bxl)
+            // Wallonie (SPW) : facultatif, une absence ou un fichier suspect laisse la liste précédente en place
+            var nWal = -1
+            if (meta.optString("wal", "").isNotBlank()) {
+                val wal = runCatching { get(BASE + WAL_FILE) }.getOrNull()
+                val n = wal?.let { runCatching { Wallonie.parse(it).size }.getOrDefault(0) } ?: 0
+                if (wal != null && n >= 1000) { writeAtomic(File(ctx.filesDir, WAL_FILE), wal); nWal = n }
+                else DiagLog.add("Mise à jour listes : Wallonie ignorée ($n emplacements)")
+            }
             prefs.edit().putString("data_date", remote).apply()
-            DiagLog.add("Mise à jour listes : $remote, OSM $nOsm, Bruxelles $nBxl")
-            true to "Listes mises à jour ($remote) : $nOsm bornes OpenStreetMap, $nBxl à Bruxelles."
+            DiagLog.add("Mise à jour listes : $remote, OSM $nOsm, Bruxelles $nBxl" + (if (nWal >= 0) ", Wallonie $nWal" else ""))
+            true to "Listes mises à jour ($remote) : $nOsm bornes OpenStreetMap, $nBxl à Bruxelles" + (if (nWal >= 0) ", $nWal en Wallonie." else ".")
         } catch (e: Exception) {
             DiagLog.add("Mise à jour listes : ${e.javaClass.simpleName}")
             false to "Mise à jour impossible (${e.javaClass.simpleName}). Les listes embarquées restent utilisées."

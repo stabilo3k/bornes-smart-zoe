@@ -52,6 +52,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -137,7 +140,7 @@ fun stationsGeoJson(stations: List<Station>, releves: List<Releve>, ev: List<Evi
         val f = JSONObject()
         f.put("type", "Feature")
         f.put("geometry", JSONObject().put("type", "Point").put("coordinates", JSONArray().put(s.lon).put(s.lat)))
-        f.put("properties", JSONObject().put("id", s.id).put("color", st.color).put("r", if (st.tried) 11 else 6).put("tried", st.tried).put("sym", if (st.tried) statusSymbol(st.color) else "").put("other", st.tried && forCar.isEmpty() && myCar != null).put("ring", ringFor(etatsBy[s.id], mine).ifEmpty { if (s.anneau400(forCar)) "e" else if (s.anneau230()) "t" else "" }).put("busy", busy(s)).put("pw", pw(s)))
+        f.put("properties", JSONObject().put("id", s.id).put("color", st.color).put("r", if (st.tried) 11 else 6).put("tried", st.tried).put("sym", if (st.tried) statusSymbol(st.color) else "").put("other", st.tried && forCar.isEmpty() && myCar != null).put("ring", ringFor(etatsBy[s.id], mine).ifEmpty { if (s.anneau400(forCar)) "e" else if (s.anneau230()) "t" else if (s.anneauEv(forCar)) "v" else "" }).put("busy", busy(s)).put("pw", pw(s)))
         feats.put(f)
     }
     return JSONObject().put("type", "FeatureCollection").put("features", feats).toString()
@@ -250,9 +253,9 @@ fun App() {
             text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Une version plus récente de l'application est disponible (vous avez la ${BuildConfig.VERSION_NAME}).", fontSize = 14.sp)
                 if (u.notes.isNotBlank()) Text(u.notes, fontSize = 13.sp)
-                Text("Le téléchargement démarre seulement si vous appuyez sur « Télécharger ». Ensuite, touchez la notification pour installer : Android vous demandera de confirmer. Vos relevés sont conservés.", fontSize = 12.sp, color = Color(0xFF4B5563))
+                Text("Le téléchargement démarre seulement si vous appuyez sur « Télécharger ». Ensuite, touchez la notification pour installer (si aucune notification n'apparaît, ouvrez l'application Fichiers > Téléchargements et touchez le fichier .apk) : Android vous demandera de confirmer. Vos relevés sont conservés.", fontSize = 12.sp, color = Color(0xFF4B5563))
             } },
-            confirmButton = { TextButton(onClick = { val ok = AppUpdate.download(ctx, u); if (!ok) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(u.pageUrl))); appUpd = null }) { Text("Télécharger") } },
+            confirmButton = { TextButton(onClick = { val ok = AppUpdate.download(ctx, u); if (!ok) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(u.pageUrl))) else android.widget.Toast.makeText(ctx, "Téléchargement lancé. Fichier : Téléchargements > BorneNeutre-" + u.versionName + ".apk", android.widget.Toast.LENGTH_LONG).show(); appUpd = null }) { Text("Télécharger") } },
             dismissButton = { Row { TextButton(onClick = { AppUpdate.snooze(ctx); appUpd = null }) { Text("Plus tard") }; TextButton(onClick = { AppUpdate.disable(ctx, true); appUpd = null }) { Text("Ne plus vérifier") } } }
         )
     }
@@ -434,7 +437,7 @@ fun App() {
     fun loadScreen(lat: Double, lon: Double, radius: Int) {
         if (loadingScreen) return
         loadingScreen = true
-        lastScreen = Triple(lat, lon, radius); screenError = null
+        lastScreen = Triple(lat, lon, radius); screenError = null; Overpass.lastError = ""
         scope.launch {
             // Flandre et OpenStreetMap partent ensemble (au lieu de l'un après l'autre)
             val flJob = async { withTimeoutOrNull(25_000) { withContext(Dispatchers.IO) { Flanders.fetch(lat, lon, maxOf(radius, 2500)) } } }
@@ -443,11 +446,10 @@ fun App() {
             if (fl != null && fl.isNotEmpty()) { flStations = (flStations + fl).distinctBy { it.id }; withContext(Dispatchers.IO) { runCatching { java.io.File(ctx.filesDir, "flandre-cache.json").writeTextAtomic(Flanders.toJson(flStations)) } } }
             val found = osmJob.await()
             loadingScreen = false
-            // Pas de carte d'erreur tant que la liste intégrée a moins de 45 jours : le détail reste dans le journal de diagnostic
-            val staleList = runCatching { java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(DataUpdate.currentDate(ctx)), java.time.LocalDate.now()) > 45 }.getOrDefault(true)
-            if (!staleList && found == null) { /* journal seulement */ }
-            else if (fl != null && fl.isNotEmpty() && found == null) screenError = "${fl.size} borne(s) flamande(s) ajoutée(s) (données ouvertes). OpenStreetMap ne répond pas : la liste intégrée (extraite le ${DataUpdate.currentDate(ctx)}) reste affichée ; seules les bornes ajoutées depuis peuvent manquer."
-            else if (found == null) screenError = "Le complément en ligne ne répond pas (serveurs OpenStreetMap occupés ou réseau faible). La liste intégrée de la Belgique (extraite le ${DataUpdate.currentDate(ctx)}) reste affichée : seules les bornes ajoutées à OpenStreetMap depuis cette date peuvent manquer. Détails : ⓘ → Journal de diagnostic."
+            // Chargement demandé par l'utilisateur : une panne est toujours dite à l'écran, avec la raison technique (test7)
+            val raison = Overpass.lastError.takeIf { it.isNotBlank() }?.let { " Raison : $it." } ?: ""
+            if (fl != null && fl.isNotEmpty() && found == null) screenError = "${fl.size} borne(s) flamande(s) ajoutée(s) (données ouvertes). OpenStreetMap ne répond pas : la liste intégrée (extraite le ${DataUpdate.currentDate(ctx)}) reste affichée ; seules les bornes ajoutées depuis peuvent manquer.$raison"
+            else if (found == null) screenError = "Le complément en ligne ne répond pas (serveurs OpenStreetMap occupés ou réseau faible). La liste intégrée de la Belgique (extraite le ${DataUpdate.currentDate(ctx)}) reste affichée : seules les bornes ajoutées à OpenStreetMap depuis cette date peuvent manquer. Détails : ⓘ → Journal de diagnostic.$raison"
             else {
                 screenOsm = (screenOsm + found).distinctBy { it.id }
                 withContext(Dispatchers.IO) { runCatching { java.io.File(ctx.filesDir, "osm-ecran-cache.json").writeTextAtomic(Flanders.toJson(screenOsm.takeLast(4000))) } }
@@ -527,6 +529,8 @@ fun App() {
         }
     }
     var lastSaved by remember { mutableStateOf<String?>(null) }
+    var lastPast by remember { mutableStateOf<String?>(null) }
+    var secondsPast by remember { mutableStateOf(0) }
     fun saveReleve(stationId: String?, lat: Double, lon: Double, result: Result, newName: String = "", share: Boolean = true, remote: Boolean = false, ts: String = LocalDate.now().toString(), kw: Double? = null, motif: String = "") {
         var sid = stationId
         var us = userStations
@@ -563,6 +567,19 @@ fun App() {
         Store.saveUser(ctx, userStations, userReleves)
         lastSaved = null
     }
+    LaunchedEffect(lastPast) {
+        if (lastPast == null) return@LaunchedEffect
+        secondsPast = 8
+        while (secondsPast > 0) { delay(1000); secondsPast-- }
+        lastPast = null
+        runSync()
+    }
+    fun undoPast() {
+        val pid = lastPast ?: return
+        userPastilles = userPastilles.filter { it.id != pid }
+        Store.savePastilles(ctx, userPastilles)
+        lastPast = null
+    }
 
     fun saveFiche(s: Station, points: Int?, plugs: Int?, kw: Double?, contact: String? = null, pastille: String? = null) {
         val us = if (seedStations.none { it.id == s.id } && userStations.none { it.id == s.id }) userStations + s else userStations
@@ -579,10 +596,10 @@ fun App() {
         if (Pastilles.isDup(userPastilles, s.id, code, now)) { Toast.makeText(ctx, "Déjà enregistré aujourd'hui pour cette borne.", Toast.LENGTH_SHORT).show(); return }
         val us = if (seedStations.none { it.id == s.id } && userStations.none { it.id == s.id }) userStations + s else userStations
         if (us !== userStations) { userStations = us; Store.saveUser(ctx, us, userReleves) }
-        userPastilles = userPastilles + Pastille("p" + UUID.randomUUID().toString().replace("-", "").take(16), s.id, code, tested, now)
+        val pid = "p" + UUID.randomUUID().toString().replace("-", "").take(16)
+        userPastilles = userPastilles + Pastille(pid, s.id, code, tested, now)
         Store.savePastilles(ctx, userPastilles)
-        Toast.makeText(ctx, "Pastille enregistrée (constat visuel), merci.", Toast.LENGTH_SHORT).show()
-        runSync()
+        lastPast = pid // envoi différé de 8 s (voir LaunchedEffect), comme pour un relevé : le temps d'annuler
     }
 
     fun addStationHere(ll: LatLng, name: String, points: Int?, plugs: Int?, kw: Double?) {
@@ -638,14 +655,14 @@ fun App() {
                 TopChip(selected = false, onClick = { showCar = true }, modifier = Modifier.widthIn(max = 200.dp)) { Text(myCar, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                 TopChip(selected = false, onClick = { showAbout = true }, modifier = Modifier.semantics { contentDescription = "À propos, licences et diagnostic" }) { Text("ⓘ") }
                 TopChip(selected = showGrid, onClick = { showGrid = !showGrid }) { Text("Zones (expérimental)") }
-                TopChip(selected = mode != 0 || fltKw != 0 || fltOk, onClick = { showModes = true }) { Text(if (loadingScreen) "Bornes…" else (when (mode) { 1 -> "Bornes : près d'un relevé"; 2 -> "Bornes : + en ligne"; 3 -> "Bornes : à essayer"; else -> "Bornes" }) + (if (fltKw != 0 || fltOk) " · filtrées" else "")) }
+                TopChip(selected = mode != 0 || fltKw != 0 || fltOk, onClick = { showModes = true }) { Text(if (loadingScreen) "Bornes…" else (when (mode) { 1 -> "Bornes : près d'un relevé"; 2 -> "Bornes : + en ligne"; 3 -> "Bornes : éclaireur"; else -> "Bornes" }) + (if (fltKw != 0 || fltOk) " · filtrées" else "")) }
                 TopChip(selected = false, onClick = { showFaq = true }) { Text("FAQ") }
                 TopChip(selected = false, onClick = { showUrgence = true; requireLocation { locate { loc -> myPos = LatLng(loc.latitude, loc.longitude); myPosTs = System.currentTimeMillis() } } }, modifier = Modifier.semantics { contentDescription = "Urgence batterie : bornes proches pour votre voiture" }) { Text("🔋 Urgence") }
             }
             if (visible.isEmpty() && !loadingScreen && !showWelcome) {
                 val why = when {
                     visibleAll.isNotEmpty() && (fltKw != 0 || fltOk) -> "Aucune borne ne correspond à vos filtres (puissance minimale, « ça a déjà chargé »)."
-                    mode == 3 && myPos == null -> "« Bornes : à essayer » a besoin de votre position : touchez le bouton bleu en bas à droite pour vous localiser."
+                    mode == 3 && myPos == null -> "« Bornes : éclaireur » a besoin de votre position : touchez le bouton bleu en bas à droite pour vous localiser."
                     mode == 3 -> "Aucune borne non essayée à moins de 2 km de vous."
                     mode == 1 -> "Aucun relevé n'est encore enregistré : « Bornes : près d'un relevé » n'a rien à montrer."
                     fltKw != 0 || fltOk -> "Aucune borne ne correspond à vos filtres (puissance minimale, « ça a déjà chargé »)."
@@ -721,6 +738,14 @@ fun App() {
                     }
                 }
             }
+            if (lastPast != null) {
+                Card(Modifier.fillMaxWidth()) {
+                    Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Pastille enregistrée ✓ · envoi dans $secondsPast s", Modifier.weight(1f))
+                        TextButton(onClick = { undoPast() }) { Text("Annuler") }
+                    }
+                }
+            }
             val te = tapEstimate
             if (sel == null && te != null) {
                 Card(Modifier.fillMaxWidth()) {
@@ -774,9 +799,26 @@ fun App() {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text("Que montrer sur la carte ?", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937))
-                val opts = listOf("Toutes les bornes connues, Belgique (par défaut, hors ligne)", "Seulement les bornes à moins de 1 km d'un relevé (là où quelqu'un a déjà essayé)", "Ajouter à notre liste les bornes d'OpenStreetMap pour la zone affichée (réseau requis)", "À essayer près de moi : bornes sans relevé à moins de 2 km, sans garantie (violet = classée « 400 V », non vérifié)")
-                opts.forEachIndexed { i, t -> ChoiceRow(mode == i, t) { chooseMode(i); showModes = false } }
-                Text("Filtres (enregistrés)", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 12.dp))
+                val opts = listOf(
+                    "Toutes les bornes connues" to "Belgique, par défaut, hors ligne",
+                    "Près des relevés" to "Seulement les bornes à moins de 1 km d'un relevé (là où quelqu'un a déjà essayé)",
+                    "Compléter en ligne" to "OpenStreetMap et données ouvertes de Flandre, pour la zone affichée (réseau requis)",
+                    "Éclaireur : essayer pour les autres" to "Bornes sans relevé à moins de 2 km de vous. En les essayant, vous aidez toute la communauté (sans garantie)"
+                )
+                opts.forEachIndexed { i, (t, d) ->
+                    HorizontalDivider(color = Color(0xFFE5E7EB))
+                    ChoiceRow(mode == i, t, 14, d) { chooseMode(i); showModes = false }
+                }
+                HorizontalDivider(color = Color(0xFFE5E7EB))
+                Surface(color = Color(0xFFF3E8FF), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Column(Modifier.padding(10.dp)) {
+                        Text("Le violet du mode « Éclaireur »", fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, color = Color(0xFF581C87))
+                        Text("◎ Double anneau violet : classée « 400 V » par la concession de Bruxelles Mobilité.", fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.padding(top = 4.dp))
+                        Text("Non vérifié, seule la pastille verte prouve.", fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+                HorizontalDivider(color = Color(0xFFD1D5DB), modifier = Modifier.padding(top = 12.dp))
+                Text("Filtres (enregistrés)", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
                 listOf(0 to "Toutes les puissances", 11 to "Au moins 11 kW", 20 to "Au moins 20 kW", 43 to "Au moins 43 kW").filter { it.first != 43 || carAcceptsDc(myCar) || fltKw == 43 }.forEach { (v, t) -> ChoiceRow(fltKw == v, t, 13) { fltKw = v; prefs.edit().putInt("flt_kw", v).apply() } }
                 CheckRow(fltOk, "Seulement les bornes où ça a déjà chargé avec ma voiture", 13) { fltOk = it; prefs.edit().putBoolean("flt_ok", it).apply() }
                 Text("Une borne dont la puissance est inconnue reste affichée.", fontSize = 12.sp, color = Color(0xFF4B5563))
@@ -854,6 +896,15 @@ fun LegendRing(dashed: Boolean, color: String, text: String, double: Boolean = f
 }
 
 @Composable
+fun LegendHatched(text: String) {
+    val bmp = remember { hatchedDiscBitmap(android.graphics.Color.parseColor("#7e22ce")).asImageBitmap() }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        androidx.compose.foundation.Image(bitmap = bmp, contentDescription = null, modifier = Modifier.size(22.dp))
+        Text(text, fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.weight(1f).padding(start = 8.dp))
+    }
+}
+
+@Composable
 fun Legend(color: String, text: String, square: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(12.dp).clip(if (square) androidx.compose.foundation.shape.RoundedCornerShape(2.dp) else CircleShape).background(Color(android.graphics.Color.parseColor(color))))
@@ -891,8 +942,9 @@ fun StationCard(s: Station, releves: List<Releve>, myCar: String, etatLines: Lis
             PlugRow(StationInfo.powerLabel(s, fiche?.kw, mine.mapNotNull { it.kw }.maxOrNull()), Plugs.of(s), StationInfo.sourceLabel(s))
             (Fiches.describe(fiche?.points, fiche?.plugs) ?: StationInfo.osmPoints(s)?.let { "${it} point${if (it > 1) "s" else ""} de charge (${StationInfo.sourceLabel(s) ?: "source ouverte"})" })?.let { Text("🔌 $it", fontSize = 13.sp) }
             StationInfo.address(s)?.let { Text("📍 $it", fontSize = 13.sp) }
-            StationInfo.phases(s)?.let { Text("⚡ Courant alternatif $it (supposé, d'après les données ouvertes de Bruxelles : à confirmer sur la borne, pastille verte = 3×400 V + N)", fontSize = 13.sp) }
+            StationInfo.phases(s)?.let { Text("⚡ Courant alternatif $it (supposé, d'après les données ouvertes de Bruxelles : à confirmer sur la borne ; selon charge.brussels, la pastille verte indique 3×400 V + N)", fontSize = 13.sp) }
             if (s.dansLaConcession() && Essai400.near(s.lat, s.lon) != null && mine.none { Essai400.concluant(it) && (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar }) Text("🟣 Classée 400 V - 22 kW (concession Bruxelles Mobilité) : probablement compatible (hypothèse). Vérifiez la pastille verte.", fontSize = 13.sp, color = Color(0xFF7E22CE))
+            if (s.anneauEv(mine.filter { (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar })) Text("🟣 Triphasée 22 kW ou 11 kW d'après le flux d'EnergyVision (20/11) : à essayer (hypothèse). Le flux ne dit rien du neutre ; la pastille verte reste la seule preuve.", fontSize = 13.sp, color = Color(0xFF7E22CE))
             if (s.anneau230() && mine.none { Essai400.concluant(it) && (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar }) Text("⚪ Liste « 230 V » de TotalEnergies (données du 16/11) : mono ou 3×230 V non précisé ; probablement non compatible (hypothèse).", fontSize = 13.sp, color = Color(0xFF4B5563))
             if (pastilleText != null) Text("🏷 $pastilleText", fontSize = 13.sp)
             else fiche?.pastille?.let { pastilleLabel(it) }?.let { Text("🏷 Pastille vue sur la borne : $it (constat visuel, non vérifié)", fontSize = 13.sp) }
@@ -1047,7 +1099,7 @@ fun AboutDialog(onDismiss: () -> Unit, onListsUpdated: () -> Unit = {}) {
                 Text("Vos relevés (borne, résultat, date, modèle de voiture) sont partagés anonymement : ni nom, ni plaque, ni trajet. Voir la FAQ « Que deviennent mes relevés ? ».", fontSize = 13.sp)
                 Text("Sources et licences", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
                 Text("Projet indépendant, non affilié à Renault ni à Mercedes-Benz / smart. Cartes © contributeurs OpenStreetMap, fond OpenFreeMap. Anneaux violets : Bruxelles Mobilité (CC BY). Anneaux gris : liste « 230 V » de ${Te230.SOURCE}.", fontSize = 13.sp)
-                Text("Liste de bornes embarquée : © contributeurs OpenStreetMap (licence ODbL), extraite le ${DataUpdate.currentDate(ctx)}. Bornes de Flandre : données ouvertes du Departement Mobiliteit en Openbare Werken (source Eco-Movement), licence Open Data Vlaanderen. Bornes de Bruxelles : données ouvertes de Bruxelles Mobilité (source Paradigm / Eco-Movement), licence CC BY. Bornes de Wallonie : ${Wallonie.SOURCE}, licence CC BY 4.0. Les relevés et signalements de la communauté sont des données propres à l'application.", fontSize = 13.sp)
+                Text("Liste de bornes embarquée : © contributeurs OpenStreetMap (licence ODbL), extraite le ${DataUpdate.currentDate(ctx)}. Bornes de Flandre : données ouvertes du Departement Mobiliteit en Openbare Werken (source Eco-Movement), licence non précisée par la fiche (question posée au Département). Bornes de Bruxelles : données ouvertes de Bruxelles Mobilité (source Paradigm / Eco-Movement), licence CC BY. Bornes de Wallonie : ${Wallonie.SOURCE}, licence CC BY 4.0. Les relevés et signalements de la communauté sont des données propres à l'application.", fontSize = 13.sp)
                 Text("Mises à jour", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
                 TextButton(enabled = !updBusy, onClick = { updBusy = true; updMsg = "Vérification…"; aScope.launch { val (ch, m) = withContext(Dispatchers.IO) { DataUpdate.update(ctx) }; updMsg = m; updBusy = false; if (ch) onListsUpdated() } }) { Text("Mettre à jour les listes de bornes maintenant") }
                 if (updMsg.isNotEmpty()) Text(updMsg, fontSize = 13.sp)
@@ -1057,7 +1109,7 @@ fun AboutDialog(onDismiss: () -> Unit, onListsUpdated: () -> Unit = {}) {
                     var appOff by remember { mutableStateOf(AppUpdate.isDisabled(ctx)) }
                     var found by remember { mutableStateOf<AppUpdate.Info?>(null) }
                     TextButton(onClick = { appUpdMsg = "Vérification…"; found = null; aScope.launch { val (i, m) = withContext(Dispatchers.IO) { AppUpdate.check(ctx, true) }; appUpdMsg = m; found = i } }) { Text("Vérifier les mises à jour de l'application") }
-                    found?.let { f -> TextButton(onClick = { if (!AppUpdate.download(ctx, f)) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(f.pageUrl))); found = null }) { Text("Télécharger la version ${f.versionName}") } }
+                    found?.let { f -> TextButton(onClick = { if (!AppUpdate.download(ctx, f)) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(f.pageUrl))) else android.widget.Toast.makeText(ctx, "Téléchargement lancé. Fichier : Téléchargements > BorneNeutre-" + f.versionName + ".apk", android.widget.Toast.LENGTH_LONG).show(); found = null }) { Text("Télécharger la version ${f.versionName}") } }
                     if (appUpdMsg.isNotEmpty()) Text(appUpdMsg, fontSize = 13.sp)
                     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = !appOff, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = { appOff = !it; AppUpdate.disable(ctx, appOff) }), verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = !appOff, onCheckedChange = null)
@@ -1236,15 +1288,16 @@ fun MapContainer(
                     st.addImage("ring-p", ringBitmap(dashed = false, color = android.graphics.Color.parseColor("#b42318")))
                     st.addImage("ring-e", ringBitmap(dashed = false, color = android.graphics.Color.parseColor("#7e22ce"), double = true))
                     st.addImage("ring-t", ringBitmap(dashed = true, color = android.graphics.Color.parseColor("#4b5563")))
+                    st.addImage("ring-v", hatchedDiscBitmap(android.graphics.Color.parseColor("#7e22ce")))
                     st.addLayer(
-                        org.maplibre.android.style.layers.SymbolLayer("st-ring", "stations").withFilter(Expression.all(Expression.neq(Expression.get("ring"), ""), Expression.neq(Expression.get("ring"), "e"), Expression.neq(Expression.get("ring"), "t"))).withProperties(
+                        org.maplibre.android.style.layers.SymbolLayer("st-ring", "stations").withFilter(Expression.all(Expression.neq(Expression.get("ring"), ""), Expression.neq(Expression.get("ring"), "e"), Expression.neq(Expression.get("ring"), "t"), Expression.neq(Expression.get("ring"), "v"))).withProperties(
                             PropertyFactory.iconImage(Expression.concat(Expression.literal("ring-"), Expression.get("ring"))),
                             PropertyFactory.iconAllowOverlap(true), PropertyFactory.iconIgnorePlacement(true)
                         )
                     )
                     // Anneaux violets (bornes classées 400 V) : cachés en dessous du zoom 10 (ils fusionnaient en une tache pleine), réduits entre 10 et 13.
                     st.addLayer(
-                        org.maplibre.android.style.layers.SymbolLayer("st-ring-e", "stations").withFilter(Expression.any(Expression.eq(Expression.get("ring"), "e"), Expression.eq(Expression.get("ring"), "t"))).withProperties(
+                        org.maplibre.android.style.layers.SymbolLayer("st-ring-e", "stations").withFilter(Expression.any(Expression.eq(Expression.get("ring"), "e"), Expression.eq(Expression.get("ring"), "t"), Expression.eq(Expression.get("ring"), "v"))).withProperties(
                             PropertyFactory.iconImage(Expression.concat(Expression.literal("ring-"), Expression.get("ring"))),
                             PropertyFactory.iconSize(Expression.interpolate(Expression.linear(), Expression.zoom(), Expression.stop(10f, 0.55f), Expression.stop(13f, 1f))),
                             PropertyFactory.iconAllowOverlap(true), PropertyFactory.iconIgnorePlacement(true)
@@ -1330,5 +1383,25 @@ fun ringBitmap(dashed: Boolean, color: Int, double: Boolean = false): android.gr
     }
     c.drawCircle(size / 2f, size / 2f, size / 2f - 4f, p)
     if (double) c.drawCircle(size / 2f, size / 2f, size / 2f - 14f, p)
+    return bmp
+}
+
+
+/** Pastille pleine hachurée violette (bornes EnergyVision triphasées « à essayer ») : bandes obliques violettes sur fond clair translucide, contour plein ;
+ *  la couleur du verdict de la borne reste visible entre les bandes. Distincte du double anneau violet de la concession. */
+fun hatchedDiscBitmap(color: Int): android.graphics.Bitmap {
+    val size = 72
+    val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(bmp)
+    val r = size / 2f - 3f
+    val clip = android.graphics.Path().apply { addCircle(size / 2f, size / 2f, r, android.graphics.Path.Direction.CW) }
+    c.save(); c.clipPath(clip)
+    c.drawColor(android.graphics.Color.argb(70, 255, 255, 255))
+    val stripe = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { this.color = color; strokeWidth = 7f; alpha = 215 }
+    var x = -size.toFloat()
+    while (x < size * 2f) { c.drawLine(x, size.toFloat(), x + size, 0f, stripe); x += 15f }
+    c.restore()
+    val edge = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { style = android.graphics.Paint.Style.STROKE; strokeWidth = 5f; this.color = color }
+    c.drawCircle(size / 2f, size / 2f, r, edge)
     return bmp
 }

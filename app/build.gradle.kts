@@ -12,8 +12,8 @@ android {
         applicationId = "org.borneneutre.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 60
-        versionName = "1.3.0"
+        versionCode = 71
+        versionName = "1.3.1"
         ndk { abiFilters += listOf("arm64-v8a") }
     }
     // Pas de bloc de métadonnées de dépendances dans l'APK (exigé par F-Droid : reproductibilité et transparence).

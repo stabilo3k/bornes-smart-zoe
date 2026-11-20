@@ -31,9 +31,3 @@ Les signalements « déclaré, non vérifié » sont des témoignages non testé
 
 ## Pas de disponibilité en temps réel
 L'application n'utilise aucun flux de disponibilité d'opérateur. Toute intégration future (par exemple transportdata.be, CC BY 4.0) citera sa source.
-
-## Liste « 230 V » de TotalEnergies (anneaux gris, Bruxelles)
-Liste d'adresses de bornes TotalEnergies / Charging Belgium identifiées « 230 V », transmise par leur support (ticket #38732) ; publication autorisée par écrit le 20/11/2026 à condition de préciser qu'il s'agit des informations issues de leurs données **en date du 16/11/2026**. TotalEnergies ne distingue pas le 230 V monophasé du 3×230 V : la liste ne dit pas qu'une voiture ne charge pas. Chaque adresse a été placée sur la carte par géocodage OpenStreetMap (ODbL), puis rapprochée de l'emplacement TotalEnergies le plus proche de la couche Bruxelles Mobilité (CC BY). Fichier : `app/src/main/java/org/borneneutre/app/Te230.kt`.
-
-## Bornes « à essayer » (anneaux violets, Bruxelles)
-Bornes de la concession de Bruxelles Mobilité classées « 400V - 22kW » (couche `charging_stations_concession` de data.mobility.brussels, CC BY, lue les 18 et 20/11/2026). Classification de conception du concessionnaire, pas une mesure. Fichier : `app/src/main/java/org/borneneutre/app/Essai400.kt`.

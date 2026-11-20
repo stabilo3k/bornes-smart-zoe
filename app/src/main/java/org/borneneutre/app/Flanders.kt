@@ -8,7 +8,7 @@ import java.net.URLEncoder
 
 /**
  * Bornes de recharge publiques et semi-publiques de Flandre (jeu de données « Laadpunten voor elektrische voertuigen »,
- * Departement Mobiliteit en Openbare Werken, source Eco-Movement, licence Open Data Vlaanderen). Un enregistrement par connecteur,
+ * Departement Mobiliteit en Openbare Werken, source Eco-Movement, licence non précisée sur la fiche du catalogue, question posée au Département). Un enregistrement par connecteur,
  * regroupés ici par emplacement. Ne couvre ni Bruxelles ni la Wallonie.
  */
 object Flanders {
@@ -47,7 +47,7 @@ object Flanders {
             if (g.kw > 0) tags.put("charging_station:output", "${if (g.kw % 1.0 == 0.0) g.kw.toInt().toString() else g.kw.toString()} kW")
             tags.put("capacity", g.evse.size.toString())
             if (g.semi) tags.put("access", "semipublic")
-            tags.put("source", "Open Data Vlaanderen / Eco-Movement")
+            tags.put("source", "Données ouvertes flamandes (Département MOW) / Eco-Movement")
             listOf(g.addr, g.city).filter { it.isNotBlank() }.joinToString(", ").takeIf { it.isNotBlank() }?.let { tags.put("addr:full", it) }
             val name = listOf(g.op, g.addr).filter { it.isNotBlank() }.joinToString(" – ").ifBlank { "Borne (Flandre)" }
             Station("fl-" + key, name, g.op, g.lat, g.lon, if (Overpass.isFastOperator(g.op) || (g.dc && !g.ac) || (g.kw > 43.0 && !g.ac)) "DC" else if (g.ac) "AC" else "?", "", "osm", tags.toString()) // site mixte (AC + DC) = AC : il reste utile aux voitures sans courant continu

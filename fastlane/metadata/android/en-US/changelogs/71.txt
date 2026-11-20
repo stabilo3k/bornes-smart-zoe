@@ -1,0 +1,1 @@
+Automatic monthly refresh of the charger lists (OpenStreetMap, Brussels Mobility, Wallonia SPW CC BY 4.0). Reorganised "Bornes affichées" menu: "Compléter en ligne" and "Éclaireur" mode. Download failures are shown with their reason. FAQ corrected and sourced.

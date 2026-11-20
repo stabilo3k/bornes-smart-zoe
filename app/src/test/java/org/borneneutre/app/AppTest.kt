@@ -234,6 +234,12 @@ class AppTest {
     }
 
     @Test
+    fun ringEnergyVisionHatchedDisabledInPublicVersion() {
+        assertEquals(0, EvTriphase.IDS.size)
+        assertFalse(Station("bx-x", "n", "EnergyVision", 50.85, 4.35, "AC", "", "osm").anneauEv(emptyList()))
+    }
+
+    @Test
     fun ringsOnlyForConcessionOperators() {
         val b = Essai400.BORNES.first()
         fun st(op: String, cur: String) = Station("x", "n", op, b.lat + 0.0001, b.lon, cur, "", "osm")

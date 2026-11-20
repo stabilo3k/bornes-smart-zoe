@@ -140,7 +140,7 @@ class FlandersTest {
         org.junit.Assert.assertEquals(2, StationInfo.osmPoints(l[0]))
         org.junit.Assert.assertEquals("AC", l[0].current)
         org.junit.Assert.assertEquals("Industrielaan 18", StationInfo.address(l[0]))
-        org.junit.Assert.assertEquals("Open Data Vlaanderen / Eco-Movement", StationInfo.sourceLabel(l[0]))
+        org.junit.Assert.assertEquals("Données ouvertes flamandes (Département MOW) / Eco-Movement", StationInfo.sourceLabel(l[0]))
         org.junit.Assert.assertEquals(1, Flanders.fromJson(Flanders.toJson(l)).size)
     }
 }
