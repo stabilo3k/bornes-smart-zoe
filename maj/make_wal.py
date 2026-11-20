@@ -9,7 +9,8 @@ from pyproj import Transformer
 
 URL = ("https://geoservices.wallonie.be/geotraitement/spwdatadownload/results/"
        "c731a282-e378-49f3-8ab6-f9a90e7a5683/BORNES_RECHARGE_XY_31370.csv")
-SOURCE = "Source : Service public de Wallonie (SPW) - Infrastructures de recharge pour véhicules électriques en Wallonie"
+# Mention exacte de l'onglet « Conditions d'utilisation » de la fiche (la fiche donne aussi (2026-04-10) dans « Citer la ressource ») : à reprendre telle quelle (CC BY 4.0)
+SOURCE = "Source : Service public de Wallonie (SPW) - Infrastructures de recharge pour véhicules électriques en Wallonie (2026-01-30)"
 
 def lire(chemin):
     if chemin:
@@ -36,7 +37,7 @@ def main():
                     "s": 1 if r0["TYPE_ACCES"] == "semi-public" else 0, "p": len(lst), "kw": kw,
                     "c": "DC" if any(x["TYPE_RECHARGE"] in ("Rapide", "Ultra-rapide") for x in lst) else "AC"})
     out.sort(key=lambda r: r["i"])
-    json.dump({"source": SOURCE + (" (données du %s)" % dates[-1] if dates else ""), "extrait": datetime.date.today().isoformat(),
+    json.dump({"source": SOURCE, "donnees": dates[-1] if dates else "", "extrait": datetime.date.today().isoformat(),
                "count": len(out), "points": sum(r["p"] for r in out), "stations": out},
               open(sortie, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(len(out), "emplacements,", sum(r["p"] for r in out), "points, données du", dates[-1] if dates else "?")
