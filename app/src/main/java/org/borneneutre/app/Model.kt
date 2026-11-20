@@ -110,6 +110,13 @@ fun verdictsByModel(releves: List<Releve>, myCar: String): List<ModelVerdict> {
     return listOf(mine) + others
 }
 
+/** Écriture atomique : fichier temporaire puis renommage, pour qu'une coupure ne laisse jamais un fichier tronqué. */
+fun File.writeTextAtomic(text: String) {
+    val tmp = File(parentFile, name + ".tmp")
+    tmp.writeText(text)
+    if (!tmp.renameTo(this)) { writeText(text); tmp.delete() }
+}
+
 object Store {
     private const val FILE = "user_data.json"
 
@@ -142,19 +149,23 @@ object Store {
         }
     }
 
-    fun saveCommunity(ctx: Context, json: String) { try { File(ctx.filesDir, "community.json").writeText(json) } catch (_: Exception) {} }
+    fun saveCommunity(ctx: Context, json: String) { try { File(ctx.filesDir, "community.json").writeTextAtomic(json) } catch (_: Exception) {} }
     fun loadCommunity(ctx: Context): String? = try { File(ctx.filesDir, "community.json").takeIf { it.exists() }?.readText() } catch (_: Exception) { null }
 
     fun loadFiches(ctx: Context): List<Fiche> = try { Fiches.fromJson(File(ctx.filesDir, "fiches.json").takeIf { it.exists() }?.readText() ?: "[]") } catch (e: Exception) { emptyList() }
-    fun saveFiches(ctx: Context, l: List<Fiche>) { try { File(ctx.filesDir, "fiches.json").writeText(Fiches.toJson(l)) } catch (_: Exception) {} }
+    fun saveFiches(ctx: Context, l: List<Fiche>) { try { File(ctx.filesDir, "fiches.json").writeTextAtomic(Fiches.toJson(l)) } catch (_: Exception) {} }
     fun loadCommunityFiches(ctx: Context): List<Fiche> = try { Fiches.fromJson(File(ctx.filesDir, "fiches-community.json").takeIf { it.exists() }?.readText() ?: "[]") } catch (e: Exception) { emptyList() }
-    fun saveCommunityFiches(ctx: Context, l: List<Fiche>) { try { File(ctx.filesDir, "fiches-community.json").writeText(Fiches.toJson(l)) } catch (_: Exception) {} }
+    fun saveCommunityFiches(ctx: Context, l: List<Fiche>) { try { File(ctx.filesDir, "fiches-community.json").writeTextAtomic(Fiches.toJson(l)) } catch (_: Exception) {} }
 
     private fun etatsFile(ctx: Context, name: String) = File(ctx.filesDir, name)
     fun loadEtats(ctx: Context): List<Etat> = try { Etats.fromJson(etatsFile(ctx, "etats.json").takeIf { it.exists() }?.readText() ?: "[]") } catch (e: Exception) { emptyList() }
-    fun saveEtats(ctx: Context, l: List<Etat>) { try { etatsFile(ctx, "etats.json").writeText(Etats.toJson(l)) } catch (_: Exception) {} }
+    fun saveEtats(ctx: Context, l: List<Etat>) { try { etatsFile(ctx, "etats.json").writeTextAtomic(Etats.toJson(l)) } catch (_: Exception) {} }
     fun loadCommunityEtats(ctx: Context): List<Etat> = try { Etats.fromJson(etatsFile(ctx, "etats-community.json").takeIf { it.exists() }?.readText() ?: "[]") } catch (e: Exception) { emptyList() }
-    fun saveCommunityEtats(ctx: Context, l: List<Etat>) { try { etatsFile(ctx, "etats-community.json").writeText(Etats.toJson(l)) } catch (_: Exception) {} }
+    fun saveCommunityEtats(ctx: Context, l: List<Etat>) { try { etatsFile(ctx, "etats-community.json").writeTextAtomic(Etats.toJson(l)) } catch (_: Exception) {} }
+    fun loadPastilles(ctx: Context): List<Pastille> = try { Pastilles.fromJson(etatsFile(ctx, "pastilles.json").takeIf { it.exists() }?.readText() ?: "[]") } catch (e: Exception) { emptyList() }
+    fun savePastilles(ctx: Context, l: List<Pastille>) { try { etatsFile(ctx, "pastilles.json").writeTextAtomic(Pastilles.toJson(l)) } catch (_: Exception) {} }
+    fun loadCommunityPastilles(ctx: Context): List<Pastille> = try { Pastilles.fromJson(etatsFile(ctx, "pastilles-community.json").takeIf { it.exists() }?.readText() ?: "[]") } catch (e: Exception) { emptyList() }
+    fun saveCommunityPastilles(ctx: Context, l: List<Pastille>) { try { etatsFile(ctx, "pastilles-community.json").writeTextAtomic(Pastilles.toJson(l)) } catch (_: Exception) {} }
 
     fun loadUser(ctx: Context): Pair<List<Station>, List<Releve>> {
         val f = File(ctx.filesDir, FILE)
@@ -163,12 +174,14 @@ object Store {
             val o = JSONObject(f.readText())
             Pair(parseStations(o.getJSONArray("stations")), parseReleves(o.getJSONArray("releves"), false))
         } catch (e: Exception) {
+            // Fichier illisible : on le garde de côté (jamais écrasé par du vide) pour pouvoir le récupérer.
+            try { f.renameTo(File(f.parentFile, FILE + ".corrompu-" + System.currentTimeMillis())) } catch (_: Exception) {}
             Pair(emptyList(), emptyList())
         }
     }
 
     fun saveUser(ctx: Context, stations: List<Station>, releves: List<Releve>) {
-        File(ctx.filesDir, FILE).writeText(userJson(stations, releves))
+        File(ctx.filesDir, FILE).writeTextAtomic(userJson(stations, releves))
     }
 
     fun loadCar(ctx: Context): String =
@@ -286,6 +299,7 @@ object StationInfo {
     fun sourceLabel(s: Station): String? = when {
         s.id.startsWith("fl-") -> "Open Data Vlaanderen / Eco-Movement"
         s.id.startsWith("bx-") -> Brussels.SOURCE
+        s.id.startsWith("wal-") -> "SPW Wallonie (CC BY 4.0)"
         s.id.startsWith("osm-") -> "OpenStreetMap"
         else -> null
     }
@@ -386,6 +400,41 @@ object Etats {
     fun parseKw(text: String): Double? = text.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it in 0.5..400.0 }
 }
 
+
+/** Pastille vue sur une borne (constat visuel, « verte », « blanche » ou « aucune »). Jamais comptée dans les relevés ni dans le verdict. `tested` : une voiture a été branchée ou non. */
+data class Pastille(val id: String, val stationId: String, val code: String, val tested: Boolean, val ts: Long)
+
+object Pastilles {
+    private fun day(ts: Long) = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
+
+    /** Même borne, même pastille, même jour : une seule fois par téléphone. */
+    fun isDup(mine: List<Pastille>, stationId: String, code: String, at: Long) = mine.any { it.stationId == stationId && it.code == code && day(it.ts) == day(at) }
+
+    /** « Pastille verte vue 2 fois (dernière : 2026-11-20), constat visuel, non vérifié » ; null si aucune observation. */
+    fun summary(all: List<Pastille>, stationId: String): String? {
+        val l = all.filter { it.stationId == stationId && pastilleLabel(it.code) != null }
+        if (l.isEmpty()) return null
+        val by = l.groupBy { it.code }
+        val names = mapOf("verte" to "verte", "blanche" to "blanche à contour rouge", "aucune" to "aucune pastille")
+        val parts = by.entries.sortedByDescending { it.value.size }.map { (c, v) -> (if (c == "aucune") "aucune pastille constatée ${v.size} fois" else "pastille ${names[c]} vue ${v.size} fois") }
+        val last = day(l.maxOf { it.ts })
+        val tested = l.count { it.tested }
+        return parts.joinToString(" · ") + " (dernière : $last)" + (if (by.size > 1) " · avis partagés" else "") + " · " + (if (tested > 0) "$tested avec voiture branchée, " else "") + "constat visuel, non vérifié"
+    }
+
+    fun toJson(l: List<Pastille>): String = org.json.JSONArray().also { a ->
+        l.forEach { a.put(JSONObject().put("id", it.id).put("stationId", it.stationId).put("code", it.code).put("tested", it.tested).put("ts", it.ts)) }
+    }.toString()
+
+    fun fromJson(json: String): List<Pastille> {
+        val a = org.json.JSONArray(json)
+        return (0 until a.length()).mapNotNull {
+            val o = a.getJSONObject(it)
+            val c = o.optString("code", "")
+            if (pastilleLabel(c) == null) null else Pastille(o.getString("id"), o.getString("stationId"), c, o.optBoolean("tested", false), o.optLong("ts", 0L))
+        }
+    }
+}
 
 /** Fiche de borne remplie par la communauté : nombre de bornes (points de charge) à cet endroit, prises par borne, puissance déclarée. Chaque champ est facultatif. */
 data class Fiche(val id: String, val stationId: String, val name: String, val lat: Double, val lon: Double, val points: Int?, val plugs: Int?, val kw: Double?, val ts: Long, val contact: String? = null, val pastille: String? = null)

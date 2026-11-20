@@ -12,10 +12,12 @@ android {
         applicationId = "org.borneneutre.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 22
-        versionName = "1.2.2"
+        versionCode = 60
+        versionName = "1.3.0"
         ndk { abiFilters += listOf("arm64-v8a") }
     }
+    // Pas de bloc de métadonnées de dépendances dans l'APK (exigé par F-Droid : reproductibilité et transparence).
+    dependenciesInfo { includeInApk = false; includeInBundle = false }
     // Signature de publication : clé gardée hors du dépôt, passée par -PBN_KEYSTORE=... -PBN_PROPS=... (F-Droid signe avec sa propre clé).
     signingConfigs {
         if (project.hasProperty("BN_KEYSTORE")) {

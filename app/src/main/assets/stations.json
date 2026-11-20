@@ -3,8 +3,8 @@
   "id": "colruyt-wemmel",
   "name": "Colruyt, Chaussée Romaine 906",
   "operator": "DATS 24",
-  "lat": 50.8966783,
-  "lon": 4.3211044,
+  "lat": 50.89634,
+  "lon": 4.32091,
   "current": "AC",
   "note": "Parking du magasin",
   "kind": "releve"
@@ -41,12 +41,12 @@
  },
  {
   "id": "blink-etangs",
-  "name": "Avenue des Etangs, Wemmel",
+  "name": "Lidl Wemmel, Steenweg op Brussel 162",
   "operator": "Blink",
-  "lat": 50.9041,
-  "lon": 4.3068,
+  "lat": 50.904012,
+  "lon": 4.30558,
   "current": "AC",
-  "note": "Position approximative, angle Chaussée de Bruxelles",
+  "note": "Garage du sous-sol du Lidl (anciennement noté Avenue des Etangs). Position OSM (même endroit que la borne OSM Lidl).",
   "kind": "releve"
  },
  {

@@ -40,6 +40,20 @@ object AppUpdate {
         return listOf("fdroid", "droidify", "neostore", "aurora", "vending", "accrescent", "obtainium", "galaxy.store", "amazon").any { i.contains(it) }
     }
 
+    /** Empreinte SHA-256 de la clé de publication de l'application (APK GitHub). */
+    const val PUBLISH_CERT = "ea2ab4a19e34e5816454817969f91bfb47448236c441aef08e67129f84400f46"
+
+    /** Vrai si l'application installée est signée par une autre clé que la nôtre (ex. compilation F-Droid) : alors aucune vérification de mise à jour n'a lieu. */
+    fun foreignSignature(ctx: Context): Boolean = try {
+        val pm = ctx.packageManager
+        val sigs = if (Build.VERSION.SDK_INT >= 28) {
+            val si = pm.getPackageInfo(ctx.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES).signingInfo
+            if (si == null) emptyArray() else if (si.hasMultipleSigners()) si.apkContentsSigners else si.signingCertificateHistory
+        } else @Suppress("DEPRECATION") (pm.getPackageInfo(ctx.packageName, android.content.pm.PackageManager.GET_SIGNATURES).signatures ?: emptyArray())
+        val hashes = sigs.map { java.security.MessageDigest.getInstance("SHA-256").digest(it.toByteArray()).joinToString("") { b -> "%02x".format(b) } }
+        hashes.isNotEmpty() && PUBLISH_CERT !in hashes
+    } catch (_: Exception) { false }
+
     fun installer(ctx: Context): String? = try {
         if (Build.VERSION.SDK_INT >= 30) ctx.packageManager.getInstallSourceInfo(ctx.packageName).installingPackageName
         else @Suppress("DEPRECATION") ctx.packageManager.getInstallerPackageName(ctx.packageName)
@@ -50,7 +64,7 @@ object AppUpdate {
     /** Faut-il vérifier maintenant (au lancement) ? */
     fun due(ctx: Context): Boolean {
         val p = ctx.getSharedPreferences(prefs, Context.MODE_PRIVATE)
-        if (p.getBoolean("upd_off", false) || isStoreInstall(installer(ctx))) return false
+        if (p.getBoolean("upd_off", false) || isStoreInstall(installer(ctx)) || foreignSignature(ctx)) return false
         val now = System.currentTimeMillis()
         return now - p.getLong("upd_checked", 0L) > EVERY_MS && now > p.getLong("upd_snooze_until", 0L)
     }

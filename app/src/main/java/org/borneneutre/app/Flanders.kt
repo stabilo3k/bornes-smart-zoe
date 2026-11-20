@@ -50,7 +50,7 @@ object Flanders {
             tags.put("source", "Open Data Vlaanderen / Eco-Movement")
             listOf(g.addr, g.city).filter { it.isNotBlank() }.joinToString(", ").takeIf { it.isNotBlank() }?.let { tags.put("addr:full", it) }
             val name = listOf(g.op, g.addr).filter { it.isNotBlank() }.joinToString(" – ").ifBlank { "Borne (Flandre)" }
-            Station("fl-" + key, name, g.op, g.lat, g.lon, if (g.dc && !g.ac) "DC" else if (g.ac) "AC" else "?", "", "osm", tags.toString())
+            Station("fl-" + key, name, g.op, g.lat, g.lon, if (Overpass.isFastOperator(g.op) || (g.dc && !g.ac) || (g.kw > 43.0 && !g.ac)) "DC" else if (g.ac) "AC" else "?", "", "osm", tags.toString()) // site mixte (AC + DC) = AC : il reste utile aux voitures sans courant continu
         }
     }
 

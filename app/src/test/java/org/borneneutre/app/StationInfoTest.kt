@@ -75,14 +75,14 @@ class EtatsUrgenceTest {
         assertEquals(1, rows.length()); assertEquals("test", rows.getJSONObject(0).getString("level"))
     }
 
-    @Test fun urgence_ranks_verified_first_and_skips_refus_and_broken() {
+    @Test fun urgence_ranks_verified_first_skips_refus_and_marks_broken() {
         val car = "Smart EQ fortwo"
         fun s(id: String, dLat: Double) = Station(id, id, "", 50.9 + dLat, 4.3, "AC", "", "osm")
         val st = listOf(s("a", 0.001), s("b", 0.002), s("c", 0.003), s("d", 0.004), s("e", 0.0005))
         fun r(id: String, res: Result) = Releve("r$id", id, "2026-11-01", res, null, "", false, car)
         val out = Urgence.nearest(50.9, 4.3, st, listOf(r("a", Result.OK), r("b", Result.REFUS), r("c", Result.OK)), car, setOf("d"))
-        assertEquals(listOf("a", "c", "e"), out.map { it.station.id })
-        assertTrue(out[0].tried); assertFalse(out[2].tried)
+        assertEquals(listOf("a", "c", "e", "d"), out.map { it.station.id }) // d : panne signalée, gardée mais en dernier
+        assertTrue(out[0].tried); assertFalse(out[2].tried); assertTrue(out[3].broken)
     }
 }
 
@@ -115,11 +115,11 @@ class FichesTest {
         assertTrue(StationInfo.powerLabel(n).contains("non renseignée"))
     }
 
-    @Test fun urgence_unknown_ranked_by_score() {
+    @Test fun urgence_unknown_ranked_by_distance() {
         val car = "Smart EQ fortwo"
         fun s(id: String, dLat: Double) = Station(id, id, "", 50.9 + dLat, 4.3, "AC", "", "osm")
         val out = Urgence.nearest(50.9, 4.3, listOf(s("near", 0.0005), s("good", 0.004)), emptyList(), car, emptySet(), score = { if (it.id == "good") 0.9 else 0.2 })
-        assertEquals(listOf("good", "near"), out.map { it.station.id })
+        assertEquals(listOf("near", "good"), out.map { it.station.id }) // la distance prime ; l'estimation (expérimentale) ne classe plus
     }
 
     @org.junit.Test fun phoneParsing() {
@@ -169,5 +169,77 @@ class PhoneAndDcTest {
     @org.junit.Test fun dcOnlyForSomeCars() {
         org.junit.Assert.assertTrue(carAcceptsDc("Renault Zoé"))
         org.junit.Assert.assertFalse(carAcceptsDc("Smart EQ fortwo"))
+    }
+}
+
+class PlugsTest {
+    @Test fun readsOnlyWhatTheSourceSays() {
+        val t = org.json.JSONObject("""{"socket:type2":"2","socket:type2_combo":"1","socket:chademo":"no","socket:schuko":"0"}""")
+        assertEquals(listOf(Plug.TYPE2, Plug.CCS), Plugs.of(t))
+        assertTrue(Plugs.of(org.json.JSONObject("{}")).isEmpty())
+        assertEquals(listOf(Plug.DOMESTIC), Plugs.of(org.json.JSONObject("""{"socket:typee":"1"}""")))
+        assertTrue(Plugs.of(Station("x", "n", "o", 50.0, 4.0, "?", "", "osm", "pas du json")).isEmpty())
+    }
+}
+
+class AuditFixesTest {
+    private fun st(id: String, la: Double, cur: String = "AC") = Station(id, id, "", la, 4.0, cur, "", "osm")
+    @Test fun urgence_brokenIsMarkedNotExcluded_distanceFirst() {
+        val a = st("a", 50.001); val b = st("b", 50.002); val c = st("c", 50.0005)
+        val r = Urgence.nearest(50.0, 4.0, listOf(a, b, c), emptyList(), DEFAULT_CAR, setOf("c"), nUnknown = 3)
+        assertEquals(listOf("a", "b", "c"), r.map { it.station.id }) // c (la plus proche) est en panne signalée : classée après, mais présente
+        assertTrue(r.last().broken)
+    }
+    @Test fun urgence_flagsDc() {
+        val z = st("dc", 50.001, "DC")
+        val r = Urgence.nearest(50.0, 4.0, listOf(z), emptyList(), "Renault Zoé", emptySet())
+        assertEquals(1, r.size); assertTrue(r[0].dc)
+        assertTrue(Urgence.nearest(50.0, 4.0, listOf(z), emptyList(), DEFAULT_CAR, emptySet()).isEmpty())
+    }
+    @Test fun flandersMixedSiteIsAc() {
+        val j = """{"features":[{"properties":{"latitude":51.0,"longitude":4.0,"uitbater":"X","evse":"1","maximaal_vermogen_kw":22.0,"stroomtype":"AC"}},{"properties":{"latitude":51.0,"longitude":4.0,"uitbater":"X","evse":"2","maximaal_vermogen_kw":150.0,"stroomtype":"DC"}}]}"""
+        assertEquals("AC", Flanders.parse(j).single().current)
+    }
+    @Test fun atomicWriteKeepsFile() {
+        val f = java.io.File.createTempFile("bnf", ".json"); f.writeTextAtomic("{\"a\":1}"); f.writeTextAtomic("{\"a\":2}")
+        assertEquals("{\"a\":2}", f.readText()); assertFalse(java.io.File(f.parentFile, f.name + ".tmp").exists()); f.delete()
+    }
+}
+
+class PastillesTest {
+    private val day = 24L * 3600 * 1000
+    @Test fun resumeAucuneObservation() { assertNull(Pastilles.summary(emptyList(), "s1")) }
+    @Test fun resumeCompteEtMarqueConstatVisuel() {
+        val t = 1_800_000_000_000L
+        val l = listOf(Pastille("a", "s1", "verte", false, t), Pastille("b", "s1", "verte", true, t + day), Pastille("c", "s2", "blanche", false, t))
+        val r = Pastilles.summary(l, "s1")!!
+        assertTrue(r.contains("verte vue 2 fois")); assertTrue(r.contains("1 avec voiture branchée")); assertTrue(r.contains("non vérifié")); assertFalse(r.contains("blanche"))
+    }
+    @Test fun avisPartagesSignales() {
+        val t = 1_800_000_000_000L
+        val r = Pastilles.summary(listOf(Pastille("a", "s1", "verte", false, t), Pastille("b", "s1", "blanche", false, t + day)), "s1")!!
+        assertTrue(r.contains("avis partagés"))
+    }
+    @Test fun doublonMemeJour() {
+        val t = 1_800_000_000_000L
+        val l = listOf(Pastille("a", "s1", "verte", false, t))
+        assertTrue(Pastilles.isDup(l, "s1", "verte", t + 1000)); assertFalse(Pastilles.isDup(l, "s1", "blanche", t + 1000)); assertFalse(Pastilles.isDup(l, "s1", "verte", t + 3 * day))
+    }
+    @Test fun jsonAllerRetourEtCodeInconnuEcarte() {
+        val l = listOf(Pastille("a", "s1", "verte", true, 5L))
+        assertEquals(l, Pastilles.fromJson(Pastilles.toJson(l)))
+        assertTrue(Pastilles.fromJson("""[{"id":"x","stationId":"s","code":"rouge","tested":false,"ts":1}]""").isEmpty())
+    }
+    @Test fun lignesServeurSansPositionUtilisateurNiPrivee() {
+        val st = mapOf("s1" to Station("s1", "A", "", 50.8, 4.3, "AC", "", "osm"), "s2" to Station("s2", "B", "", 50.8, 4.3, "AC", "", "privee"))
+        val rows = Sync.pastilleRows(listOf(Pastille("a", "s1", "verte", false, 1L), Pastille("b", "s2", "verte", false, 1L), Pastille("c", "s1", "blanche", false, 1L)), st, "device-1234", setOf("c"))
+        assertEquals(1, rows.length()); assertEquals("verte", rows.getJSONObject(0).getString("code"))
+    }
+}
+
+class FaqOrderTest {
+    @Test fun glossaireToujoursDernier() {
+        val l = listOf(FaqItem("a", "q", "r", "", "", "Glossaire"), FaqItem("b", "q", "r", "", "", "Chez moi"), FaqItem("c", "q", "r", "", "", "Chez moi"))
+        assertEquals(listOf("b", "c", "a"), Faq.glossaryLast(l).map { it.id })
     }
 }

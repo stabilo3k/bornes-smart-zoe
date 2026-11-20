@@ -90,6 +90,29 @@ class AppTest {
         items.forEach { assertTrue(it.id, it.q.isNotBlank() && it.a.isNotBlank()) }
     }
 
+    @Test fun faqMarkupIsWellFormedAndLinksAreHttps() {
+        val items = Faq.parse(File("src/main/assets/faq.json").readText())
+        items.forEach {
+            assertEquals(it.id, 0, Regex("\\*\\*").findAll(it.a).count() % 2)
+            Regex("\\]\\(([^)]*)\\)").findAll(it.a).forEach { m -> assertTrue(it.id + m.groupValues[1], m.groupValues[1].startsWith("https://")) }
+            assertTrue(it.id, faqBlocks(it.a).isNotEmpty())
+        }
+        val b = faqBlocks("Résumé.\n\n**À préparer**\n- un ;\n- deux.\n\n1) a\n2) b")
+        assertEquals(true, (b[0] as FaqBlock.Para).lead)
+        assertEquals(6, b.size)
+        assertEquals("2)", (b[5] as FaqBlock.Item).mark)
+    }
+
+    @Test fun raccordCoversRegionsAndLinksAreHttps() {
+        Raccord.REGIONS.forEach { assertTrue(it, Raccord.deRegion(it).isNotEmpty()) }
+        assertEquals(Raccord.TOUS.size, Raccord.TOUS.map { it.id }.toSet().size)
+        Raccord.TOUS.forEach {
+            assertTrue(it.id, it.pieces.isNotEmpty() && it.source.isNotBlank())
+            assertTrue(it.id, it.url.isEmpty() || it.url.startsWith("https://"))
+            assertTrue(it.id, Raccord.modele(it).contains("3×400 V + neutre"))
+        }
+    }
+
     @Test fun refusWeighsFullWithoutWitness() {
         val s = mapOf("a" to st("a"))
         val e = Estimation.evidenceFrom(listOf(Releve("1", "a", "2026-11-01", Result.REFUS, null, "", false, DEFAULT_CAR)), s)
@@ -158,9 +181,9 @@ class AppTest {
     }
 
     @Test fun zoneLegendUsesPaleSquares() {
-        assertEquals(2, LEGEND_ZONES.size)
+        assertEquals(3, LEGEND_ZONES.size)
         assertTrue(LEGEND_ZONES.all { it.square })
-        assertEquals(setOf("#bfe0c0", "#eebdbd"), LEGEND_ZONES.map { it.color }.toSet())
+        assertEquals(setOf("#bfe0c0", "#f1e3a8", "#eebdbd"), LEGEND_ZONES.map { it.color }.toSet())
     }
 
     @Test fun remoteFlagSentOnlyWhenTrue() {
@@ -170,5 +193,57 @@ class AppTest {
         val rows = Sync.toRows(listOf(near, far), mapOf("s1" to st), "dev", emptySet())
         assertFalse(rows.getJSONObject(0).has("remote"))
         assertTrue(rows.getJSONObject(1).getBoolean("remote"))
+    }
+
+    @Test
+    fun essai400RingRules() {
+        val b = Essai400.BORNES.first()
+        assertEquals(Essai400.BORNES.map { it.ref }.toSet().size, Essai400.BORNES.size)
+        assertTrue(Essai400.BORNES.size in 70..90)
+        assertTrue(Essai400.near(b.lat + 0.0001, b.lon) != null) // ≈ 11 m
+        assertTrue(Essai400.near(b.lat + 0.002, b.lon) == null) // ≈ 220 m
+        fun r(res: Result, other: Boolean?) = Releve("x", "s", "2026-11-19", res, other, "", false)
+        assertTrue(Essai400.aEssayer(b.lat, b.lon, emptyList()))
+        assertTrue(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.REFUS, true)))) // refus avec autre voiture : à refaire
+        assertFalse(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.OK, null))))
+        assertFalse(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.REFUS, false))))
+        assertFalse(Essai400.aEssayer(50.0, 4.0, emptyList()))
+    }
+
+    @Test
+    fun te230ListRules() {
+        assertEquals(68, Te230.BORNES.size)
+        val b = Te230.BORNES.first()
+        assertTrue(Te230.near(b.lat + 0.0001, b.lon) != null)
+        assertTrue(Te230.near(b.lat + 0.002, b.lon) == null)
+        // Jamais à la fois « 400 V » (concession) et « 230 V » (liste TotalEnergies) : les deux marquages sont disjoints.
+        for (e in Essai400.BORNES) assertTrue("${e.ref} aussi dans la liste 230 V", Te230.near(e.lat, e.lon) == null)
+        assertTrue(Te230.SOURCE.contains("16/11"))
+    }
+
+    @Test
+    fun otherModelFlag() {
+        val st = Station("s1", "n", "o", 50.9, 4.3, "AC", "", "osm")
+        val rel = Releve("1", "s1", "2026-11-01", Result.OK, null, "", false, "Renault Zoé")
+        fun other(car: String?): Boolean {
+            val f = org.json.JSONObject(stationsGeoJson(listOf(st), listOf(rel), emptyList(), emptyMap(), emptyList(), car)).getJSONArray("features").getJSONObject(0)
+            return f.getJSONObject("properties").getBoolean("other")
+        }
+        assertTrue(other("Smart EQ fortwo")) // essai seulement avec un autre modèle : marqué
+        assertFalse(other("Renault Zoé")) // essai avec mon modèle : pas marqué
+    }
+
+    @Test
+    fun ringsOnlyForConcessionOperators() {
+        val b = Essai400.BORNES.first()
+        fun st(op: String, cur: String) = Station("x", "n", op, b.lat + 0.0001, b.lon, cur, "", "osm")
+        assertTrue(st("TotalEnergies", "AC").anneau400(emptyList()))
+        assertTrue(st("", "AC").anneau400(emptyList()))
+        assertFalse(st("Tesla", "AC").anneau400(emptyList()))
+        assertFalse(st("EnergyVision", "AC").anneau400(emptyList()))
+        assertFalse(st("TotalEnergies", "DC").anneau400(emptyList()))
+        val g = Te230.BORNES.first()
+        assertTrue(Station("y", "n", "PitPoint", g.lat, g.lon, "AC", "", "osm").anneau230())
+        assertFalse(Station("y", "n", "Tesla Destination", g.lat, g.lon, "AC", "", "osm").anneau230())
     }
 }

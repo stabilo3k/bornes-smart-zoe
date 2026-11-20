@@ -30,7 +30,7 @@ object Brussels {
             tags.put("source", SOURCE)
             val op = r.optString("o", "")
             out.add(Station("bx-" + r.optString("i", i.toString()), op.ifBlank { "Borne (Bruxelles)" }, op,
-                r.optDouble("la"), r.optDouble("lo"), if (dc && !ac) "DC" else if (ac) "AC" else "?", "", "osm", tags.toString()))
+                r.optDouble("la"), r.optDouble("lo"), if (Overpass.isFastOperator(op) || (dc && !ac)) "DC" else if (ac) "AC" else "?", "", "osm", tags.toString()))
         }
         return out
     }

@@ -242,6 +242,67 @@ object Sync {
         null
     }
 
+    // ---- Pastilles vues (table « pastilles », SQL 1.3) : constat visuel, séparé des relevés. Sans la table, les observations restent sur le téléphone. ----
+    @Volatile private var pastAt = 0L
+    @Volatile private var pastOk = false
+
+    private fun probePastilles(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - pastAt < 6L * 3600 * 1000) return pastOk
+        pastOk = try { call("pastilles?select=client_id&limit=1", "GET", null).body != null } catch (_: Exception) { return pastOk }
+        pastAt = now
+        DiagLog.add("serveur pastilles : " + if (pastOk) "présent" else "absent, observations gardées sur le téléphone")
+        return pastOk
+    }
+
+    fun pastilleRows(l: List<Pastille>, stations: Map<String, Station>, device: String, alreadySent: Set<String>): JSONArray {
+        val out = JSONArray()
+        for (p in l) {
+            if (p.id in alreadySent) continue
+            val s = stations[p.stationId] ?: continue
+            if (s.kind == "privee") continue
+            out.put(JSONObject().put("client_id", p.id).put("device", device).put("station_id", s.id)
+                .put("station_name", s.name.take(120)).put("lat", s.lat).put("lon", s.lon)
+                .put("code", p.code).put("tested", p.tested))
+        }
+        return out
+    }
+
+    fun pastillesFromRows(json: String): List<Pastille> {
+        val a = JSONArray(json)
+        val out = ArrayList<Pastille>()
+        for (i in 0 until a.length()) {
+            val o = a.getJSONObject(i)
+            val c = o.optString("code", "")
+            if (pastilleLabel(c) == null) continue
+            val ts = try { java.time.OffsetDateTime.parse(o.optString("created_at", "")).toInstant().toEpochMilli() } catch (_: Exception) { continue }
+            out.add(Pastille(o.getString("client_id"), o.getString("station_id"), c, o.optBoolean("tested", false), ts))
+        }
+        return out
+    }
+
+    /** Envoie les pastilles de l'utilisateur puis télécharge celles des 12 derniers mois. null si la table n'existe pas ou si le réseau échoue. */
+    fun syncPastilles(ctx: Context, mine: List<Pastille>, stations: Map<String, Station>): String? = try {
+        if (!probePastilles()) null else {
+            val p = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val sent = p.getStringSet("synced_pastilles", emptySet()) ?: emptySet()
+            val rows = pastilleRows(mine, stations, deviceId(ctx), sent)
+            if (rows.length() > 0) {
+                val done = upload(rows) { body ->
+                    try { val r = call("pastilles?on_conflict=client_id", "POST", body, PREFER); DiagLog.add("envoi pastilles : HTTP ${r.code} ${(r.err ?: "").take(90)}"); classify(r.code, r.err) }
+                    catch (e: Exception) { DiagLog.add("envoi pastilles : ${e.javaClass.simpleName}"); -1 }
+                }
+                p.edit().putStringSet("synced_pastilles", sent + done).apply()
+            }
+            val since = java.time.Instant.now().minusSeconds(365L * 24 * 3600).toString()
+            val r = call("pastilles?select=client_id,station_id,code,tested,created_at&created_at=gte.$since&order=created_at.desc&limit=2000", "GET", null)
+            if (r.body == null) { DiagLog.add("lecture pastilles : HTTP ${r.code} ${(r.err ?: "").take(90)}"); null } else r.body
+        }
+    } catch (e: Exception) {
+        DiagLog.add("pastilles : ${e.javaClass.simpleName} ${(e.message ?: "").take(60)}")
+        null
+    }
+
     // ---- Fiches de borne (table « fiches », SQL 1.0.4) : nombre de bornes, prises par borne, puissance déclarée. ----
 
     fun ficheRows(fiches: List<Fiche>, stations: Map<String, Station>, device: String, alreadySent: Set<String>, withV12: Boolean = false): JSONArray {
