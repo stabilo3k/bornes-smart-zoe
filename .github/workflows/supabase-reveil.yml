@@ -1,0 +1,23 @@
+# Réveil du serveur Supabase (offre gratuite : mise en pause après 7 jours sans activité). Aucune donnée n'est enregistrée.
+# La clé ci-dessous est la clé PUBLIABLE de l'application (publique par conception ; l'accès est limité par les règles de la base).
+name: supabase-reveil
+on:
+  schedule:
+    - cron: "23 6 * * 1,4"   # lundi et jeudi, 06:23 UTC
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  reveil:
+    runs-on: ubuntu-latest
+    env:
+      URL: https://evvoufjrzejumdpjgoek.supabase.co
+      KEY: sb_publishable_phgSpnbZ0xQSz93hzalZ9A_mWcgPrmx
+    steps:
+      - name: Interroger les quatre tables (échoue si le serveur ne répond pas)
+        run: |
+          set -euo pipefail
+          for t in releves etats pastilles fiches; do
+            n=$(curl -fsS --retry 3 --max-time 60 -D - -o /dev/null -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Prefer: count=exact" -H "Range: 0-0" "$URL/rest/v1/$t?select=client_id" | grep -i '^content-range' | tr -d '\r')
+            echo "$t : $n"
+          done
