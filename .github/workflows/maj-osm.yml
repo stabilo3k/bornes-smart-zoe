@@ -33,7 +33,7 @@ jobs:
           pip install pyproj
           python3 maj/make_wal.py data/bornes-wallonie.new.json && mv data/bornes-wallonie.new.json data/bornes-wallonie.json
           python3 -c "import json; m=json.load(open('data/meta.json', encoding='utf-8')); m['wal']='bornes-wallonie.json'; json.dump(m, open('data/meta.json','w', encoding='utf-8'), ensure_ascii=False, indent=1)"
-      - name: Publication (même si une source a échoué : les autres fichiers sont publiés)
+      - name: Publication (les autres fichiers sont publiés même si une source échoue)
         if: always()
         run: |
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
