@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Copie des fichiers précédents (garde-fous relatifs de publier.py)
+        run: mkdir -p /tmp/prev && cp data/*.json /tmp/prev/
       - run: sudo apt-get update && sudo apt-get install -y osmium-tool
       - name: Extrait OSM Belgique (Geofabrik, sinon miroir openstreetmap.fr)
         run: |
@@ -33,6 +35,9 @@ jobs:
           pip install pyproj
           python3 maj/make_wal.py data/bornes-wallonie.new.json && mv data/bornes-wallonie.new.json data/bornes-wallonie.json
           python3 -c "import json; m=json.load(open('data/meta.json', encoding='utf-8')); m['wal']='bornes-wallonie.json'; json.dump(m, open('data/meta.json','w', encoding='utf-8'), ensure_ascii=False, indent=1)"
+      - name: Publication des listes (garde-fous −10 % / +25 %, date d'entrée, empreintes, état)
+        if: always()
+        run: python3 maj/publier.py /tmp/prev
       - name: Contrôle de couverture Open Charge Map (chiffres seulement)
         if: always()
         continue-on-error: true
@@ -43,5 +48,5 @@ jobs:
         if: always()
         run: |
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/bornes-be-osm.json data/bornes-bruxelles.json data/bornes-wallonie.json data/meta.json data/couverture-ocm.json 2>/dev/null || git add data/bornes-be-osm.json data/bornes-bruxelles.json data/bornes-wallonie.json data/meta.json
+          git add data/bornes-be-osm.json data/bornes-bruxelles.json data/bornes-wallonie.json data/meta.json data/vues.json data/etat.json data/couverture-ocm.json 2>/dev/null || git add data/bornes-be-osm.json data/bornes-bruxelles.json data/bornes-wallonie.json data/meta.json data/vues.json data/etat.json
           git diff --cached --quiet || git commit -m "Listes de bornes : mise à jour automatique (OSM chaque jour ; Bruxelles et Wallonie chaque dimanche)" && git push
