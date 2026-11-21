@@ -1,0 +1,20 @@
+{
+ "date": "2026-11-21",
+ "sources": {
+  "osm": {
+   "statut": "ok",
+   "n": 6082,
+   "avant": 6082
+  },
+  "bxl": {
+   "statut": "ok",
+   "n": 1752,
+   "avant": 1752
+  },
+  "wal": {
+   "statut": "ok",
+   "n": 3533,
+   "avant": 3533
+  }
+ }
+}

@@ -3,5 +3,19 @@
  "osm": "bornes-be-osm.json",
  "bxl": "bornes-bruxelles.json",
  "note": "Listes de bornes (OpenStreetMap ODbL ; Bruxelles Mobilité CC BY). Voir DATA-LICENCE.md.",
- "wal": "bornes-wallonie.json"
+ "wal": "bornes-wallonie.json",
+ "files": {
+  "bornes-be-osm.json": {
+   "sha256": "0670b407e87b033a4e3259b9e10db5aea1b5e7954460ad61b1100b5efb80e273",
+   "n": 6082
+  },
+  "bornes-bruxelles.json": {
+   "sha256": "23d8a3ad70c61aef413db5e1a783115f2a5487834efc0e17231e3175b63cf857",
+   "n": 1752
+  },
+  "bornes-wallonie.json": {
+   "sha256": "39b61eba6e446508230d595f02cc68908635ffbe9ec1efe40ddba1ff98cca803",
+   "n": 3533
+  }
+ }
 }
