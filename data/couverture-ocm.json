@@ -1,8 +1,8 @@
 {
- "date": "2026-11-20",
+ "date": "2026-11-21",
  "source": "Open Charge Map (licences ouvertes, opendata=true), https://openchargemap.org",
  "ocm_belgique": 1299,
- "osm_elements": 6078,
+ "osm_elements": 6082,
  "ocm_absents_de_osm_a_60_m": 845,
  "part_couverte": 0.349,
  "ids_ocm_absents": [
