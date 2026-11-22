@@ -1,20 +1,20 @@
 {
- "date": "2026-11-21",
+ "date": "2026-11-22",
  "osm": "bornes-be-osm.json",
  "bxl": "bornes-bruxelles.json",
  "note": "Listes de bornes (OpenStreetMap ODbL ; Bruxelles Mobilité CC BY). Voir DATA-LICENCE.md.",
  "wal": "bornes-wallonie.json",
  "files": {
   "bornes-be-osm.json": {
-   "sha256": "0670b407e87b033a4e3259b9e10db5aea1b5e7954460ad61b1100b5efb80e273",
+   "sha256": "d51c5941533fc1be9856cca6dbb56afdfcc56696e71624a87aefa4ab0293d12b",
    "n": 6082
   },
   "bornes-bruxelles.json": {
-   "sha256": "23d8a3ad70c61aef413db5e1a783115f2a5487834efc0e17231e3175b63cf857",
+   "sha256": "2e21fd83eec8a1b7e329d79cd4e5f0479a34cd25dc37a105163edebfad92371e",
    "n": 1752
   },
   "bornes-wallonie.json": {
-   "sha256": "39b61eba6e446508230d595f02cc68908635ffbe9ec1efe40ddba1ff98cca803",
+   "sha256": "803d6601ec2d05f8ca73755b254b66ee2aea5dcb4df143202f426cf2445e488c",
    "n": 3533
   }
  }
