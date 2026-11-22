@@ -1,0 +1,1 @@
+Version 1.3.6. Nouveau filtre « nouvelles bornes », boutons Appeler et Formulaire de contact pour prévenir l'exploitant, journal plus fiable à copier, lecture des QR codes, modes essai et démo ; « pastille » devient « sticker » dans la FAQ.

@@ -1,0 +1,1 @@
+Version 1.3.6. New "new stations" filter, Call and Contact form buttons to warn the operator, a more reliable log copy, QR code reading, trial and demo modes; "pastille" is now "sticker" in the FAQ.
