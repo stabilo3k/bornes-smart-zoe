@@ -13,3 +13,5 @@ Bornes Smart and Zoé helps you find where it charges and where it does not.
 No ads, no tracking, no Google services. Map data © OpenStreetMap contributors, tiles by OpenFreeMap. Reports are shared through a Supabase server hosted in the European Union. The app interface is in French.
 
 Important: the app shows user reports, not a guarantee. It does not replace advice from an electrician or the car maker. Never modify your electrical installation without a qualified professional. Independent app, not affiliated with Renault, Nissan, Mercedes-Benz or smart.
+
+Privacy: no personal data; details in PRIVACY.md in the GitHub repository (github.com/stabilo3k/bornes-smart-zoe).

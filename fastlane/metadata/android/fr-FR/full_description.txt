@@ -13,3 +13,5 @@ Bornes Smart et Zoé aide à savoir où ça charge, et où ça ne charge pas.
 Sans publicité, sans pistage, sans services Google. Cartes © contributeurs OpenStreetMap, fond OpenFreeMap. Les relevés sont partagés via un serveur Supabase hébergé dans l'Union européenne.
 
 Important : l'application donne des relevés d'utilisateurs, pas une garantie. Elle ne remplace pas l'avis d'un électricien ni celui du constructeur. Ne modifiez jamais votre installation électrique sans un professionnel qualifié. Application indépendante, non affiliée à Renault, Nissan, Mercedes-Benz ni smart.
+
+Confidentialité : aucune donnée personnelle ; détail dans PRIVACY.md du dépôt GitHub (github.com/stabilo3k/bornes-smart-zoe).

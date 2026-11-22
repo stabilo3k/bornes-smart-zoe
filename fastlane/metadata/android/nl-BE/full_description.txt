@@ -13,3 +13,5 @@ Bornes Smart et Zoé helpt je te vinden waar het wel en waar het niet laadt.
 Geen advertenties, geen tracking, geen Google-diensten. Kaartgegevens © OpenStreetMap-bijdragers, kaarttegels van OpenFreeMap. De meldingen worden gedeeld via een Supabase-server in de Europese Unie. De interface van de app is in het Frans.
 
 Belangrijk: de app toont meldingen van gebruikers, geen garantie. Ze vervangt het advies van een elektricien of van de constructeur niet. Wijzig nooit je elektrische installatie zonder gekwalificeerde vakman. Onafhankelijke app, niet verbonden met Renault, Nissan, Mercedes-Benz of smart.
+
+Privacy: geen persoonsgegevens; details in PRIVACY.md in de GitHub-repository (github.com/stabilo3k/bornes-smart-zoe).

@@ -25,9 +25,10 @@ OpenFreeMap / OpenMapTiles, données © contributeurs OpenStreetMap.
 ## Relevés et signalements de la communauté
 Relevés « Ça charge / Ne charge pas » (borne, résultat, date, modèle de voiture, puissance facultative) et états de borne (panne, occupée, file, libre, déclaré par un tiers) : envoyés anonymement par les utilisateurs, sans nom, plaque, trajet ni position GPS de l'utilisateur.
 **Licence : ODbL 1.0** (décision du projet), avec mention de la source (« relevés de la communauté de l'application Bornes Smart et Zoé »). Les positions et noms de bornes issus d'OpenStreetMap y restent © contributeurs OpenStreetMap.
+Politique de confidentialité complète : `PRIVACY.md`.
 **Exception à « sans position » :** quand un utilisateur ajoute une nouvelle borne et choisit de la partager (case décochée par défaut), la position de cette borne, donc celle où il se trouvait, est envoyée. Une borne privée n'est jamais envoyée.
 Les relevés ne sont pas des garanties : une borne qui a chargé une fois peut refuser ensuite.
 Les signalements « déclaré, non vérifié » sont des témoignages non testés ; ils sont affichés à part et ne changent jamais le verdict.
 
 ## Pas de disponibilité en temps réel
-L'application n'utilise aucun flux de disponibilité d'opérateur. Toute intégration future (par exemple transportdata.be, CC BY 4.0) citera sa source.
+L'application n'utilise aucun flux de disponibilité d'opérateur. Toute intégration future (par exemple le point d'accès national NAP, CC BY 4.0) citera sa source.
