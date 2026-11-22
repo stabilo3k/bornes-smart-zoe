@@ -1,0 +1,35 @@
+[
+ {
+  "client_id": "u7a026b639a1a4efb",
+  "station_id": "user-3bf4746c-53c",
+  "station_name": "Nouvelle borne",
+  "lat": 50.90643,
+  "lon": 4.30278666666667,
+  "current": "AC",
+  "result": "OK",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-17"
+ },
+ {
+  "client_id": "uc3bf49d67bb342d5",
+  "station_id": "fl-50.89634,4.32091,DATS 24",
+  "station_name": "DATS 24 – Romeinsesteenweg 906",
+  "lat": 50.896341,
+  "lon": 4.320908,
+  "current": "AC",
+  "result": "OK",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-19"
+ },
+ {
+  "client_id": "udbe93459371f4625",
+  "station_id": "osm-node-8880512935",
+  "station_name": "Total Energy",
+  "lat": 50.8927751,
+  "lon": 4.321645,
+  "current": "AC",
+  "result": "OK",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-19"
+ }
+]

@@ -1,0 +1,26 @@
+# Archive cumulative et anonyme des relevés, fiches et pastilles du serveur (colonnes publiques, jamais « device »), pour qu'ils
+# survivent à la purge de 3 ans du serveur. Chaque dimanche ; ajout seul ; ne touche pas à app/.
+name: archive-communaute
+on:
+  schedule:
+    - cron: "47 5 * * 0"   # dimanche, 05:47 UTC
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archiver
+        run: python3 -I maj/archiver_communaute.py
+      - name: Publier si changement
+        run: |
+          set -euo pipefail
+          git config user.name "archive-communaute"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/archive-communaute
+          if git diff --cached --quiet; then echo "Aucun changement."; exit 0; fi
+          git commit -m "Archive communautaire : mise à jour automatique (données publiques, sans identifiant de téléphone)"
+          git pull --rebase origin main
+          git push origin HEAD:main

@@ -1,0 +1,62 @@
+[
+ {
+  "client_id": "f86ab0d285fbc4ba7",
+  "station_id": "presbytere-wemmel",
+  "station_name": "Rue du Presbytère 11, Wemmel",
+  "lat": 50.9082982,
+  "lon": 4.3022773,
+  "points": 1,
+  "plugs": 2,
+  "kw": null,
+  "pastille": null,
+  "created_at": "2026-11-17T14:09:34.186364+00:00"
+ },
+ {
+  "client_id": "ffab98b2ad2854ef4",
+  "station_id": "user-3bf4746c-53c",
+  "station_name": "Nouvelle borne",
+  "lat": 50.90643,
+  "lon": 4.30278666666667,
+  "points": 1,
+  "plugs": 2,
+  "kw": 22.0,
+  "pastille": null,
+  "created_at": "2026-11-17T14:58:57.106814+00:00"
+ },
+ {
+  "client_id": "f51edcd1a38b4474f",
+  "station_id": "user-3bf4746c-53c",
+  "station_name": "Nouvelle borne",
+  "lat": 50.90643,
+  "lon": 4.30278666666667,
+  "points": 1,
+  "plugs": 2,
+  "kw": 22.0,
+  "pastille": "aucune",
+  "created_at": "2026-11-18T13:36:21.853952+00:00"
+ },
+ {
+  "client_id": "ff9d897639b814df4",
+  "station_id": "presbytere-wemmel",
+  "station_name": "Rue du Presbytère 11, Wemmel",
+  "lat": 50.9082982,
+  "lon": 4.3022773,
+  "points": 1,
+  "plugs": 2,
+  "kw": null,
+  "pastille": "aucune",
+  "created_at": "2026-11-18T13:36:59.992373+00:00"
+ },
+ {
+  "client_id": "f7ccee7e490da4793",
+  "station_id": "ra182-wemmel",
+  "station_name": "Avenue Reine Astrid 182, Wemmel",
+  "lat": 50.8947649,
+  "lon": 4.3178018,
+  "points": 1,
+  "plugs": 2,
+  "kw": null,
+  "pastille": "aucune",
+  "created_at": "2026-11-18T13:37:50.155627+00:00"
+ }
+]
