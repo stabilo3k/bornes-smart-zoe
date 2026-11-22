@@ -1,7 +1,7 @@
 {
-  "versionCode": 79,
-  "versionName": "1.3.3",
-  "apk": "https://github.com/stabilo3k/bornes-smart-zoe/releases/download/v1.3.3/BornesSmartZoe-1.3.3.apk",
-  "page": "https://github.com/stabilo3k/bornes-smart-zoe/releases/tag/v1.3.3",
-  "notes": "Mise à jour automatique : barre de progression puis installation ouverte après le téléchargement. FAQ : installation à la main expliquée."
+  "versionCode": 80,
+  "versionName": "1.3.4",
+  "apk": "https://github.com/stabilo3k/bornes-smart-zoe/releases/download/v1.3.4/BornesSmartZoe-1.3.4.apk",
+  "page": "https://github.com/stabilo3k/bornes-smart-zoe/releases/tag/v1.3.4",
+  "notes": "Légende de la carte précisée : les points d'estimation (vert pâle, rose pâle, gris clair) sont expliqués."
 }
