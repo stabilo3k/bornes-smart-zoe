@@ -4,7 +4,6 @@
   "stationId": "colruyt-wemmel",
   "ts": "2026-10-29",
   "result": "OK",
-  "otherCar": null,
   "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
   "car": "Smart EQ fortwo"
  },
@@ -13,7 +12,6 @@
   "stationId": "presbytere-wemmel",
   "ts": "2026-10-29",
   "result": "OK",
-  "otherCar": null,
   "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
   "car": "Smart EQ fortwo"
  },
@@ -22,7 +20,6 @@
   "stationId": "ra32-wemmel",
   "ts": "2026-10-29",
   "result": "OK",
-  "otherCar": null,
   "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
   "car": "Smart EQ fortwo"
  },
@@ -31,7 +28,6 @@
   "stationId": "ra9-wemmel",
   "ts": "2026-10-29",
   "result": "OK",
-  "otherCar": null,
   "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
   "car": "Smart EQ fortwo"
  },
@@ -40,7 +36,6 @@
   "stationId": "blink-etangs",
   "ts": "2026-10-29",
   "result": "OK",
-  "otherCar": null,
   "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
   "car": "Smart EQ fortwo"
  },
@@ -49,7 +44,6 @@
   "stationId": "vanermengem-jette",
   "ts": "2026-10-29",
   "result": "REFUS",
-  "otherCar": true,
   "note": "Date d'essai non renseignée (saisie le 29/10/2026) ; Voyant orange puis coupure après quelques secondes",
   "car": "Smart EQ fortwo"
  },
@@ -58,7 +52,6 @@
   "stationId": "ra182-wemmel",
   "ts": "2026-10-29",
   "result": "REFUS",
-  "otherCar": null,
   "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
   "car": "Smart EQ fortwo"
  },
@@ -67,7 +60,6 @@
   "stationId": "herne-geeststraat",
   "ts": "2026-10-29",
   "result": "OK",
-  "otherCar": null,
   "note": "Date d'essai non renseignée (saisie le 29/10/2026)",
   "car": "Smart EQ fortwo"
  },
@@ -76,7 +68,6 @@
   "stationId": "ezcharge-enghien",
   "ts": "2026-10-30",
   "result": "REFUS",
-  "otherCar": true,
   "note": "",
   "car": "Smart EQ fortwo"
  },
@@ -85,7 +76,6 @@
   "stationId": "herne-geeststraat",
   "ts": "2025-10-26",
   "result": "OK",
-  "otherCar": null,
   "note": "44 % à l'arrivée, 6 °C, 9,3 kW",
   "car": "Smart EQ fortwo"
  },
@@ -94,7 +84,6 @@
   "stationId": "cofabel-herne",
   "ts": "2026-10-31",
   "result": "OK",
-  "otherCar": null,
   "note": "18,3 kW à 56 %, 8 °C",
   "car": "Smart EQ fortwo"
  },
@@ -103,8 +92,15 @@
   "stationId": "ers-enghien",
   "ts": "2026-10-30",
   "result": "REFUS",
-  "otherCar": true,
   "note": "Voyant orange puis arrêt ; les autres voitures chargent",
+  "car": "Smart EQ fortwo"
+ },
+ {
+  "id": "seed-violette-de-heyn-jette",
+  "stationId": "osm-node-8880512935",
+  "ts": "2026-11-19",
+  "result": "OK",
+  "note": "Borne violette, autocollant vert ; 8,1 kW à 68 %",
   "car": "Smart EQ fortwo"
  }
 ]

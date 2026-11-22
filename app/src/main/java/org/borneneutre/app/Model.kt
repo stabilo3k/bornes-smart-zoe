@@ -24,23 +24,31 @@ data class Releve(
     val stationId: String,
     val ts: String,
     val result: Result,
-    val otherCar: Boolean?,
     val note: String,
     val seed: Boolean,
     val car: String = "",
     val remote: Boolean = false,
     val kw: Double? = null, // puissance maximale observée (kW), facultative, déclarée par l'utilisateur ; peut varier (charge intelligente)
-    val motif: String = "" // motif du refus, facultatif : "voyant", "eteinte", "badge" ou ""
+    val motif: String = "", // motif du refus, facultatif : "voyant", "eteinte", "badge", "carte" ou ""
+    val demarrage: String = "" // démarrage de la charge, facultatif : voir DEMARRAGES
 )
+
+/** Comment la charge a été démarrée (facultatif, choix fermés). Partie des relevés ; jamais un verdict. */
+val DEMARRAGES = listOf("carte" to "Carte ou badge", "appli" to "Appli du fournisseur", "qr" to "QR code", "cb" to "Carte bancaire", "autre" to "Autre", "nsp" to "Je ne sais pas")
+fun demarrageLabel(code: String): String? = DEMARRAGES.firstOrNull { it.first == code }?.second
 
 const val DEFAULT_CAR = "Smart EQ fortwo"
 
 /** Motif d'un refus, en une touche facultative (choix fermés). Le code part au serveur, le libellé reste sur le téléphone. */
-val MOTIFS = listOf("voyant" to "Voyant orange puis coupure", "eteinte" to "Borne éteinte ou sans réponse", "badge" to "Badge ou authentification refusé")
+val MOTIFS = listOf("voyant" to "Voyant orange puis coupure", "eteinte" to "Borne éteinte ou sans réponse", "badge" to "Badge ou authentification refusé", "carte" to "Carte ou appli refusée (la borne n'a pas démarré)")
+
+/** Un refus dont le motif ne dit rien du réseau (badge, borne éteinte, carte ou appli refusée) n'est PAS un verdict de compatibilité. */
+fun Releve.horsVerdict(): Boolean = result == Result.REFUS && motif in setOf("badge", "eteinte", "carte")
 fun motifLabel(code: String): String? = MOTIFS.firstOrNull { it.first == code }?.second
 
 /** Pastille de charge.brussels vue sur la borne (choix fermés). */
-val PASTILLES = listOf("verte" to "Verte (22 kW, 3×400 V + N)", "blanche" to "Blanche (7,2 kW, 1×230 V)", "aucune" to "Aucune pastille")
+val PASTILLES = listOf("verte" to "Vert (22 kW, 3×400 V + N)", "blanche" to "Blanc (7,2 kW, 1×230 V)",
+    "bleue" to "Bleu EnergyDrive (22 kW, 3×400 V + N)", "autre" to "Autre sticker", "aucune" to "Aucun sticker")
 fun pastilleLabel(code: String): String? = PASTILLES.firstOrNull { it.first == code }?.second
 
 /** Liste fermée : voitures dont le chargeur 22 kW est connu pour refuser certains réseaux 3×230 V (Brugel 2020 ; Elbilgrossisten). */
@@ -83,7 +91,8 @@ fun statusSymbol(color: String): String = when (color) { COLOR_OK -> "ok"; COLOR
 /** Statut simple d'une borne pour les voitures de la liste : vert / rouge / orange / gris. */
 data class SimpleStatus(val label: String, val color: String, val n: Int, val tried: Boolean)
 
-fun simpleStatus(releves: List<Releve>): SimpleStatus {
+fun simpleStatus(tous: List<Releve>): SimpleStatus {
+    val releves = tous.filterNot { it.horsVerdict() }
     val ok = releves.count { it.result == Result.OK }
     val ko = releves.count { it.result == Result.REFUS }
     val n = releves.size
@@ -135,11 +144,10 @@ object Store {
         parseReleves(JSONArray(ctx.assets.open("releves.json").bufferedReader().readText()), true)
 
     /** A priori par borne issus des données ouvertes de Bruxelles (hypothèses non validées). */
-    fun loadPriors(ctx: Context): Map<String, Double> = try {
-        parsePriors(ctx.assets.open("priors-bruxelles.json").bufferedReader().readText())
-    } catch (e: Exception) {
-        emptyMap()
-    }
+    fun loadPriors(@Suppress("UNUSED_PARAMETER") ctx: Context): Map<String, Double> = emptyMap() // 1.3.2 : les a priori arbitraires ne nourrissent plus aucun libellé (remplacés par Indice)
+
+    fun loadPhones(ctx: Context): Map<String, Int> = try { File(ctx.filesDir, "pastilles-phones.json").takeIf { it.exists() }?.readText()?.let { Pastilles.phonesFromRows(it) } ?: emptyMap() } catch (_: Exception) { emptyMap() }
+    fun savePhones(ctx: Context, json: String) { try { File(ctx.filesDir, "pastilles-phones.json").writeTextAtomic(json) } catch (_: Exception) {} }
 
     fun parsePriors(json: String): Map<String, Double> {
         val a = JSONObject(json).getJSONArray("priors")
@@ -191,11 +199,22 @@ object Store {
         ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE).edit().putString("car", canonicalCar(car) ?: DEFAULT_CAR).apply()
     }
 
-    /** Fusionne un export reçu (même format que « Exporter ») ; lève une exception si le texte n'est pas valide. */
+    /** Bornes de validité d'une borne importée : Belgique (mêmes bornes que le CHECK du serveur), identifiant court. */
+    internal fun validStation(s: Station): Boolean =
+        s.lat.isFinite() && s.lon.isFinite() && s.lat in 49.4..51.6 && s.lon in 2.5..6.5 && s.id.isNotBlank() && s.id.length <= 80
+
+    /** Un relevé importé est accepté seulement avec identifiants courts et une date AAAA-MM-JJ valide (sinon le serveur le refuserait pour toujours). */
+    internal fun validReleve(r: Releve): Boolean =
+        r.id.isNotBlank() && r.id.length <= 80 && r.stationId.isNotBlank() && r.stationId.length <= 80 &&
+            runCatching { java.time.LocalDate.parse(r.ts.take(10)) }.isSuccess && r.kw.let { it == null || it.isFinite() }
+
+    /** Fusionne un export reçu (même format que « Exporter ») ; lève une exception si le texte n'est pas valide.
+     *  Les éléments invalides (coordonnée non finie ou hors Belgique, date mal formée, identifiant vide ou trop long, doublon dans le fichier) sont écartés. */
     fun importUser(text: String, stations: List<Station>, releves: List<Releve>): Pair<List<Station>, List<Releve>> {
         val o = JSONObject(text.trim())
-        val ns = parseStations(o.optJSONArray("stations") ?: JSONArray())
+        val ns = parseStationsSafe(o.optJSONArray("stations") ?: JSONArray()).filter { validStation(it) }.distinctBy { it.id }
         val nr = parseReleves(o.getJSONArray("releves"), false).filter { isKnownCar(it.car) }.map { it.copy(car = canonicalCar(it.car)!!) }
+            .filter { validReleve(it) }.distinctBy { it.id }
         val sIds = stations.map { it.id }.toSet()
         val rIds = releves.map { it.id }.toSet()
         return Pair(stations + ns.filter { it.id !in sIds }, releves + nr.filter { it.id !in rIds })
@@ -216,7 +235,14 @@ object Store {
     private fun releveJson(r: Releve) = JSONObject()
         .put("id", r.id).put("stationId", r.stationId).put("ts", r.ts)
         .put("result", r.result.name).put("note", r.note).put("car", r.car)
-        .also { if (r.otherCar != null) it.put("otherCar", r.otherCar); if (r.remote) it.put("remote", true); if (r.kw != null) it.put("kw", r.kw); if (r.motif.isNotBlank()) it.put("motif", r.motif) }
+        .also { if (r.remote) it.put("remote", true); if (r.kw != null) it.put("kw", r.kw); if (r.motif.isNotBlank()) it.put("motif", r.motif); if (r.demarrage.isNotBlank()) it.put("demarrage", r.demarrage) }
+
+    /** Comme parseStations mais un élément illisible est ignoré au lieu de faire échouer tout l'import. */
+    private fun parseStationsSafe(a: JSONArray): List<Station> = (0 until a.length()).mapNotNull {
+        runCatching { val o = a.getJSONObject(it)
+            Station(o.getString("id"), o.getString("name"), o.optString("operator", ""), o.getDouble("lat"), o.getDouble("lon"),
+                o.optString("current", "?"), o.optString("note", ""), o.optString("kind", "user"), o.optString("params", "")) }.getOrNull()
+    }
 
     private fun parseStations(a: JSONArray): List<Station> = (0 until a.length()).map {
         val o = a.getJSONObject(it)
@@ -228,21 +254,36 @@ object Store {
     }
 
     private fun parseReleves(a: JSONArray, seed: Boolean): List<Releve> = (0 until a.length()).mapNotNull {
-        val o = a.getJSONObject(it)
+        val o = a.optJSONObject(it) ?: return@mapNotNull null
+        if (!o.has("id") || !o.has("stationId")) return@mapNotNull null
         val res = runCatching { Result.valueOf(o.getString("result")) }.getOrNull() ?: return@mapNotNull null
         Releve(
             o.getString("id"), o.getString("stationId"), o.optString("ts", ""),
             res,
-            if (o.has("otherCar") && !o.isNull("otherCar")) o.getBoolean("otherCar") else null,
             o.optString("note", ""), seed, o.optString("car", ""), o.optBoolean("remote", false),
             if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { !it.isNaN() } else null,
-            o.optString("motif", "").takeIf { c -> motifLabel(c) != null } ?: ""
+            o.optString("motif", "").takeIf { c -> motifLabel(c) != null } ?: "",
+            o.optString("demarrage", "").takeIf { c -> demarrageLabel(c) != null } ?: ""
         )
     }
 }
 
 /** Informations d'affichage tirées des étiquettes OSM (JSON dans Station.params) ; rien n'est inventé : champ absent = null. */
 object StationInfo {
+    /** Clé interne (dans `params`, jamais affichée telle quelle) : date d'entrée de la borne dans la liste du projet, « AAAA-MM-JJ ». */
+    const val ADDED_KEY = "_d"
+    const val ADDED_DAYS = 45L
+
+    /** Date d'entrée dans la liste si elle est connue ET date de moins de 45 jours ; sinon null. Comparaison faite à la lecture, jamais stockée. */
+    fun recentlyAdded(s: Station, today: java.time.LocalDate = java.time.LocalDate.now()): java.time.LocalDate? {
+        val d = try { java.time.LocalDate.parse(tags(s).optString(ADDED_KEY, "").take(10)) } catch (_: Exception) { return null }
+        val age = java.time.temporal.ChronoUnit.DAYS.between(d, today)
+        return d.takeIf { age in 0..ADDED_DAYS }
+    }
+
+    fun addedLabel(s: Station, today: java.time.LocalDate = java.time.LocalDate.now()): String? =
+        recentlyAdded(s, today)?.let { "Ajoutée à la liste le %02d/%02d (entrée dans notre liste, pas forcément installée récemment)".format(it.dayOfMonth, it.monthValue) }
+
     private fun tags(s: Station): org.json.JSONObject = try { org.json.JSONObject(s.params.ifBlank { "{}" }) } catch (e: Exception) { org.json.JSONObject() }
 
     /** Puissance nominale en kW (valeur la plus élevée indiquée), ou null. Accepte « 22 kW », « 22000 » (W), « 11;22 ». */
@@ -309,7 +350,7 @@ object StationInfo {
     /** Dernière charge réussie pour la voiture donnée (date « ts » telle que stockée), et taux de réussite sur ses essais. */
     data class MyHistory(val lastOk: String?, val ok: Int, val n: Int)
     fun history(releves: List<Releve>, car: String): MyHistory {
-        val mine = releves.filter { (canonicalCar(it.car) ?: DEFAULT_CAR) == car }
+        val mine = releves.filter { (canonicalCar(it.car) ?: DEFAULT_CAR) == car && !it.horsVerdict() }
         return MyHistory(mine.filter { it.result == Result.OK }.maxOfOrNull { it.ts }, mine.count { it.result == Result.OK }, mine.size)
     }
 }
@@ -325,7 +366,9 @@ enum class EtatKind(val code: String, val label: String, val ttlHours: Int, val 
     FILE("file", "File d'attente", 3, false),
     LIBRE("libre", "Libre", 3, false),
     MARCHE("marche", "Fonctionne", 336, true),
-    NEMARCHEPAS("nemarchepas", "Ne fonctionne pas", 336, true);
+    NEMARCHEPAS("nemarchepas", "Ne fonctionne pas", 336, true),
+    /** « Panne réglée » (ou panne signalée par erreur) : annule les pannes plus anciennes de la même borne. Jamais affichée elle-même. Le serveur n'accepte que des ajouts : on annule par un nouvel état. */
+    REPARE("repare", "Panne réglée", 72, false);
     companion object { fun of(code: String) = values().firstOrNull { it.code == code } }
 }
 
@@ -341,8 +384,11 @@ object Etats {
     /** Signalements actifs de la borne, sans ceux qu'un vrai relevé récent rend caducs (relevé du même jour ou plus récent). */
     fun shown(active: List<Etat>, stationId: String, releves: List<Releve>): List<Etat> {
         val mine = releves.filter { it.stationId == stationId }
+        val repares = active.filter { it.stationId == stationId && it.kind == EtatKind.REPARE }
         return active.filter { e ->
             e.stationId == stationId && when {
+                e.kind == EtatKind.REPARE -> false
+                (e.kind == EtatKind.PANNE || e.kind == EtatKind.NEMARCHEPAS) && repares.any { it.ts >= e.ts } -> false
                 e.kind == EtatKind.PANNE -> mine.none { it.result == Result.OK && it.ts > day(e.ts) } // seul un relevé d'un jour suivant lève la panne : un relevé du même jour peut être antérieur
                 e.declared && e.kind.declaredOnly -> mine.none { it.ts >= day(e.ts) }
                 else -> true
@@ -410,16 +456,42 @@ object Pastilles {
     /** Même borne, même pastille, même jour : une seule fois par téléphone. */
     fun isDup(mine: List<Pastille>, stationId: String, code: String, at: Long) = mine.any { it.stationId == stationId && it.code == code && day(it.ts) == day(at) }
 
-    /** « Pastille verte vue 2 fois (dernière : 2026-11-20), constat visuel, non vérifié » ; null si aucune observation. */
-    fun summary(all: List<Pastille>, stationId: String): String? {
+    /** Nombre de téléphones distincts par (borne, code), lu sur la vue serveur « pastilles_par_borne » ; clé « stationId|code ». */
+    fun phonesFromRows(json: String): Map<String, Int> {
+        val a = org.json.JSONArray(json); val out = HashMap<String, Int>()
+        for (i in 0 until a.length()) { val o = a.getJSONObject(i); val c = o.optString("code", ""); if (pastilleLabel(c) != null) out[o.getString("station_id") + "|" + c] = o.optInt("n_telephones", 0) }
+        return out
+    }
+
+    /** « vue 1 fois » (non confirmée) ou « confirmée par 2 téléphones » ; constat visuel, jamais un verdict. null si aucune observation. */
+    fun summary(all: List<Pastille>, stationId: String, phones: Map<String, Int> = emptyMap()): String? {
         val l = all.filter { it.stationId == stationId && pastilleLabel(it.code) != null }
         if (l.isEmpty()) return null
         val by = l.groupBy { it.code }
-        val names = mapOf("verte" to "verte", "blanche" to "blanche à contour rouge", "aucune" to "aucune pastille")
-        val parts = by.entries.sortedByDescending { it.value.size }.map { (c, v) -> (if (c == "aucune") "aucune pastille constatée ${v.size} fois" else "pastille ${names[c]} vue ${v.size} fois") }
+        val names = mapOf("verte" to "vert", "blanche" to "blanc à contour rouge", "bleue" to "bleu EnergyDrive", "autre" to "d'un autre type")
+        val parts = by.entries.sortedByDescending { it.value.size }.map { (c, v) ->
+            val tel = phones[stationId + "|" + c] // téléphones distincts (vue serveur) ; null = inconnu : on compte les lignes, sans jamais écrire « confirmée »
+            val conf = if (tel != null && tel >= 2) "confirmé par $tel téléphones" else "vu ${if (tel != null) 1 else v.size} fois, non confirmé"
+            if (c == "aucune") "aucun sticker constaté ($conf)" else "sticker ${names[c]} $conf"
+        }
         val last = day(l.maxOf { it.ts })
         val tested = l.count { it.tested }
-        return parts.joinToString(" · ") + " (dernière : $last)" + (if (by.size > 1) " · avis partagés" else "") + " · " + (if (tested > 0) "$tested avec voiture branchée, " else "") + "constat visuel, non vérifié"
+        return parts.joinToString(" · ") + " (dernier : $last)" + (if (by.containsKey("blanche") && by.keys.any { it == "verte" || it == "bleue" }) " · avis partagés" else "") + " · " + (if (tested > 0) "$tested avec voiture branchée, " else "") + "constat visuel, non vérifié"
+    }
+
+    /** Repère carte des autocollants verts/bleus vus : 1 = vue 1 fois, 2 = confirmée par 2 téléphones ou plus ; absent si des constats contraires (blanche) datent de moins de 90 jours.
+     *  Constat visuel : jamais une couleur de verdict ni un anneau. */
+    fun markers(all: List<Pastille>, phones: Map<String, Int>, nowMs: Long): Map<String, Int> {
+        val out = HashMap<String, Int>()
+        val ninety = 90L * 24 * 3600 * 1000
+        for ((sid, l) in all.filter { pastilleLabel(it.code) != null }.groupBy { it.stationId }) {
+            val fav = l.filter { it.code == "verte" || it.code == "bleue" }
+            if (fav.isEmpty()) continue
+            if (l.any { it.code == "blanche" && nowMs - it.ts < ninety }) continue
+            val tel = fav.groupBy { it.code }.keys.maxOf { c -> phones[sid + "|" + c] ?: 0 }
+            out[sid] = if (tel >= 2) 2 else 1
+        }
+        return out
     }
 
     fun toJson(l: List<Pastille>): String = org.json.JSONArray().also { a ->
@@ -483,4 +555,21 @@ object Fiches {
     fun extraStations(fiches: List<Fiche>, knownIds: Set<String>): List<Station> =
         fiches.filter { it.stationId !in knownIds && it.lat != 0.0 }.distinctBy { it.stationId }
             .map { Station(it.stationId, it.name.ifBlank { "Borne ajoutée" }, "", it.lat, it.lon, "AC", "", "commu") }
+}
+
+/** Indice de voisinage (hypothèse) : une borne sans essai pour ma voiture, à moins de 50 m d'une autre borne qui en a, partage peut-être son raccordement. Jamais un verdict. */
+object Voisins {
+    const val RAYON_M = 50.0
+    fun hint(s: Station, stations: Collection<Station>, releves: List<Releve>, car: String): String? {
+        fun mineOf(id: String) = releves.filter { it.stationId == id && !it.horsVerdict() && (canonicalCar(it.car) ?: DEFAULT_CAR) == car }
+        if (mineOf(s.id).isNotEmpty()) return null
+        val near = stations.filter { it.id != s.id && it.kind != "privee" && Geo.distanceM(s.lat, s.lon, it.lat, it.lon) <= RAYON_M }
+        val pairs = near.mapNotNull { n -> mineOf(n.id).takeIf { it.isNotEmpty() }?.let { n to it } }
+        if (pairs.isEmpty()) return null
+        val ok = pairs.any { (_, r) -> r.any { it.result == Result.OK } }
+        val ko = pairs.any { (_, r) -> r.any { it.result == Result.REFUS } }
+        val d = pairs.minOf { (n, _) -> Geo.distanceM(s.lat, s.lon, n.lat, n.lon) }.toInt()
+        val what = when { ok && ko -> "des avis opposés"; ok -> "✓ ça charge"; else -> "✕ ne charge pas" }
+        return "Même site probable : à $d m, une autre borne a donné $what avec ce modèle de voiture, selon des conducteurs (hypothèse : deux bornes voisines n'ont pas forcément le même raccordement ; ce n'est pas un essai sur celle-ci)."
+    }
 }

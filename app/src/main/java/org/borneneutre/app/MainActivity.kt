@@ -1,6 +1,7 @@
 package org.borneneutre.app
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -20,6 +21,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import androidx.compose.runtime.produceState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +68,9 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import kotlinx.coroutines.withContext
 import android.widget.Toast
 import androidx.compose.material3.Switch
@@ -114,6 +119,9 @@ private const val OFM_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
 private const val OSM_STYLE = """{"version":8,"sources":{"osm":{"type":"raster","tiles":["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256,"maxzoom":19,"attribution":"© OpenStreetMap"}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}"""
 private const val EMPTY = """{"type":"FeatureCollection","features":[]}"""
 
+const val DEMO_LAT = 50.8467 // mode démo : Grand-Place de Bruxelles (lieu public), jamais la vraie position
+const val DEMO_LON = 4.3525
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         DiagLog.init(this)
@@ -126,12 +134,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-fun stationsGeoJson(stations: List<Station>, releves: List<Releve>, ev: List<Evidence>, priors: Map<String, Double>, etats: List<Etat> = emptyList(), myCar: String? = null, pw: (Station) -> Int = { 0 }, busy: (Station) -> Boolean = { false }, estimate: Boolean = true): String {
+fun stationsGeoJson(stations: List<Station>, releves: List<Releve>, ev: List<Evidence>, priors: Map<String, Double>, etats: List<Etat> = emptyList(), myCar: String? = null, pw: (Station) -> Int = { 0 }, busy: (Station) -> Boolean = { false }, estimate: Boolean = true, pastMarks: Map<String, Int> = emptyMap()): String {
     val feats = JSONArray()
     val byStation = releves.groupBy { it.stationId }
     val etatsBy = etats.groupBy { it.stationId }
     for (s in stations) {
-        val mine = byStation[s.id] ?: emptyList()
+        val mine = (byStation[s.id] ?: emptyList()).filterNot { it.horsVerdict() }
         val forCar = if (myCar == null) mine else mine.filter { (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar }
         val st = if (forCar.isNotEmpty()) simpleStatus(forCar) else if (mine.isNotEmpty()) simpleStatus(mine) else if (!estimate) SimpleStatus("Pas encore essayée", "#6b7280", 0, false) else {
             val e = Estimation.estimate(s.lat, s.lon, ev, priors[s.id])
@@ -140,7 +148,7 @@ fun stationsGeoJson(stations: List<Station>, releves: List<Releve>, ev: List<Evi
         val f = JSONObject()
         f.put("type", "Feature")
         f.put("geometry", JSONObject().put("type", "Point").put("coordinates", JSONArray().put(s.lon).put(s.lat)))
-        f.put("properties", JSONObject().put("id", s.id).put("color", st.color).put("r", if (st.tried) 11 else 6).put("tried", st.tried).put("sym", if (st.tried) statusSymbol(st.color) else "").put("other", st.tried && forCar.isEmpty() && myCar != null).put("ring", ringFor(etatsBy[s.id], mine).ifEmpty { if (s.anneau400(forCar)) "e" else if (s.anneau230()) "t" else if (s.anneauEv(forCar)) "v" else "" }).put("busy", busy(s)).put("pw", pw(s)))
+        f.put("properties", JSONObject().put("id", s.id).put("color", st.color).put("r", if (st.tried) 11 else 6).put("tried", st.tried).put("sym", if (st.tried) statusSymbol(st.color) else "").put("other", st.tried && forCar.isEmpty() && myCar != null).put("ring", ringFor(etatsBy[s.id], mine).ifEmpty { if (s.anneau400(forCar)) "e" else if (s.anneau230()) "t" else if (s.anneauEv(forCar)) "v" else "" }).put("busy", busy(s)).put("pw", pw(s)).put("new", StationInfo.recentlyAdded(s) != null).put("pv", pastMarks[s.id] ?: 0))
         feats.put(f)
     }
     return JSONObject().put("type", "FeatureCollection").put("features", feats).toString()
@@ -216,6 +224,7 @@ fun App() {
     var commuEtats by remember { mutableStateOf(Store.loadCommunityEtats(ctx)) }
     var userPastilles by remember { mutableStateOf(Store.loadPastilles(ctx)) }
     var commuPastilles by remember { mutableStateOf(Store.loadCommunityPastilles(ctx)) }
+    var pastPhones by remember { mutableStateOf(Store.loadPhones(ctx)) }
     val allPastilles = remember(userPastilles, commuPastilles) { (userPastilles + commuPastilles).distinctBy { it.id } }
     var showPastille by remember { mutableStateOf(false) }
     var confirmReport by remember { mutableStateOf<Result?>(null) }
@@ -232,6 +241,12 @@ fun App() {
     var showWarn by remember { mutableStateOf(false) }
     var showRename by remember { mutableStateOf(false) }
     var showUrgence by remember { mutableStateOf(false) }
+    // Trois écrans d'explication après le choix de la voiture, au tout premier lancement seulement ; raccourci d'icône « Urgence batterie » : ouvre directement la fenêtre Urgence.
+    var showIntro by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val urgenceIntent = (ctx as? Activity)?.intent?.action == "org.borneneutre.app.URGENCE"
+    var qrFor by remember { mutableStateOf<Station?>(null) }
+    var qrTexts by remember { mutableStateOf<List<String>?>(null) }
+    var qrLearned by remember { mutableStateOf(QrBorne.learnedFromJson(ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE).getString("qr_associations", null))) }
     var fetchedOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
     var embeddedOsm by remember { mutableStateOf<List<Station>>(emptyList()) }
     var bxStations by remember { mutableStateOf<List<Station>>(emptyList()) }
@@ -245,18 +260,48 @@ fun App() {
         }
     }
     LaunchedEffect(Unit) { embeddedOsm = withContext(Dispatchers.Default) { Store.loadEmbeddedOsm(ctx) } }
-    var appUpd by remember { mutableStateOf<AppUpdate.Info?>(null) }
+    var appUpd by AppUpdate.request
+    var updDl by remember { mutableStateOf(-1L) }
+    var updState by remember { mutableStateOf("") } // "", "cours", "pret", "echec"
+    var updInfoTxt by remember { mutableStateOf("") }
+    LaunchedEffect(updDl) {
+        if (updDl < 0) return@LaunchedEffect
+        updState = "cours"
+        while (true) {
+            val (st, got, tot) = AppUpdate.progress(ctx, updDl)
+            if (st == android.app.DownloadManager.STATUS_SUCCESSFUL) {
+                updState = "pret"
+                if (!AppUpdate.install(ctx, updDl)) updInfoTxt = "Le fichier est téléchargé mais l'installation ne s'ouvre pas toute seule : ouvrez Fichiers > Téléchargements et touchez BorneNeutre-" + (appUpd?.versionName ?: "") + ".apk."
+                break
+            }
+            if (st == android.app.DownloadManager.STATUS_FAILED) { updState = "echec"; break }
+            updInfoTxt = if (tot > 0) "Téléchargement : ${got * 100 / tot} %" else "Téléchargement en cours…"
+            delay(700)
+        }
+    }
     appUpd?.let { u ->
         AlertDialog(
-            onDismissRequest = { AppUpdate.snooze(ctx); appUpd = null },
+            onDismissRequest = { if (updState == "") AppUpdate.snooze(ctx); appUpd = null; updDl = -1L; updState = "" },
             title = { Text("Nouvelle version ${u.versionName}") },
             text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Une version plus récente de l'application est disponible (vous avez la ${BuildConfig.VERSION_NAME}).", fontSize = 14.sp)
                 if (u.notes.isNotBlank()) Text(u.notes, fontSize = 13.sp)
-                Text("Le téléchargement démarre seulement si vous appuyez sur « Télécharger ». Ensuite, touchez la notification pour installer (si aucune notification n'apparaît, ouvrez l'application Fichiers > Téléchargements et touchez le fichier .apk) : Android vous demandera de confirmer. Vos relevés sont conservés.", fontSize = 12.sp, color = Color(0xFF4B5563))
+                when (updState) {
+                    "" -> Text("Rien n'est téléchargé tant que vous n'appuyez pas sur « Télécharger ». Ensuite l'installation s'ouvre toute seule ; Android vous demande de confirmer (et, la première fois, d'autoriser l'installation depuis cette application : autorisez, puis revenez ici et touchez « Installer »). Vos relevés sont conservés.", fontSize = 12.sp, color = Color(0xFF4B5563))
+                    "cours" -> { Text(updInfoTxt, fontSize = 13.sp); LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    "pret" -> Text(if (updInfoTxt.startsWith("Le fichier")) updInfoTxt else "Téléchargement terminé. Si l'installation ne s'est pas ouverte, ou après avoir autorisé l'installation dans les réglages, touchez « Installer ».", fontSize = 13.sp)
+                    else -> Text("Le téléchargement a échoué (réseau ?). Réessayez, ou ouvrez la page de la version pour télécharger le fichier à la main.", fontSize = 13.sp, color = Color(0xFFB42318))
+                }
             } },
-            confirmButton = { TextButton(onClick = { val ok = AppUpdate.download(ctx, u); if (!ok) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(u.pageUrl))) else android.widget.Toast.makeText(ctx, "Téléchargement lancé. Fichier : Téléchargements > BorneNeutre-" + u.versionName + ".apk", android.widget.Toast.LENGTH_LONG).show(); appUpd = null }) { Text("Télécharger") } },
-            dismissButton = { Row { TextButton(onClick = { AppUpdate.snooze(ctx); appUpd = null }) { Text("Plus tard") }; TextButton(onClick = { AppUpdate.disable(ctx, true); appUpd = null }) { Text("Ne plus vérifier") } } }
+            confirmButton = {
+                when (updState) {
+                    "" -> TextButton(onClick = { val id = AppUpdate.download(ctx, u); if (id < 0) { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(u.pageUrl))); appUpd = null } else { updInfoTxt = ""; updDl = id } }) { Text("Télécharger") }
+                    "pret" -> TextButton(onClick = { if (!AppUpdate.install(ctx, updDl)) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(u.pageUrl))) }) { Text("Installer") }
+                    "echec" -> TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(u.pageUrl))); appUpd = null; updDl = -1L; updState = "" }) { Text("Page de la version") }
+                    else -> TextButton(onClick = { appUpd = null; updDl = -1L; updState = "" }) { Text("Fermer") }
+                }
+            },
+            dismissButton = { if (updState == "") Row { TextButton(onClick = { AppUpdate.snooze(ctx); appUpd = null }) { Text("Plus tard") }; TextButton(onClick = { AppUpdate.disable(ctx, true); appUpd = null }) { Text("Ne plus vérifier") } } }
         )
     }
     val osmStations = remember(fetchedOsm, embeddedOsm) { (fetchedOsm + embeddedOsm).distinctBy { it.id } }
@@ -270,15 +315,21 @@ fun App() {
         val s0 = (seedStations + userStations).let { base -> base + commuStations.filter { c -> c.id !in osmIds && base.none { it.id == c.id } } }
         s0 + Fiches.extraStations(allFiches, s0.map { it.id }.toSet() + osmIds)
     }
-    // test14d : une borne flamande à moins de 40 m d'une borne de la liste manuelle ou d'un utilisateur = même endroit ; ses relevés s'affichent sur la fiche conservée.
-    val aliasMap = remember(userStations, flStations, screenOsm, cacheOsm, osmStations, bxStations, walStations) { Overpass.aliasOf(seedStations + userStations, flStations + screenOsm + cacheOsm + osmStations + bxStations + walStations, 40.0) }
+    // Fusion graduée (Fusion.kt) : une seule règle ; alias pour TOUTE borne écartée, y compris les zones OSM de l'écran et du cache.
+    val fusion = remember(stations, osmStations, flStations, bxStations, walStations) { Fusion.build(stations, listOf(osmStations, flStations, bxStations, walStations)) }
+    val masterIds = remember(stations) { stations.map { it.id }.toSet() }
+    val baseUnf = fusion.all
+    val aliasMap = remember(fusion, screenOsm, cacheOsm) { fusion.alias + Fusion.aliasOnly(fusion.all, screenOsm + cacheOsm, masterIds) }
+    val pastillesM = remember(allPastilles, aliasMap) { allPastilles.map { p -> aliasMap[p.stationId]?.let { p.copy(stationId = it) } ?: p } }
+    val phonesM = remember(pastPhones, aliasMap) { val o = HashMap<String, Int>(); for ((k, v) in pastPhones) { val i = k.lastIndexOf('|'); val sid = k.substring(0, i); val nk = (aliasMap[sid] ?: sid) + k.substring(i); o[nk] = maxOf(o[nk] ?: 0, v) }; o }
     val activeEtatsM = remember(activeEtats, aliasMap) { activeEtats.map { e -> aliasMap[e.stationId]?.let { e.copy(stationId = it) } ?: e } }
     val releves = remember(userReleves, commuReleves, aliasMap) { (seedReleves + userReleves + commuReleves).map { r -> aliasMap[r.stationId]?.let { r.copy(stationId = it) } ?: r } }
     val otherSources = remember(flStations, bxStations, walStations, screenOsm, cacheOsm) { flStations + bxStations + walStations + screenOsm + cacheOsm }
     val byId = remember(stations, osmStations, otherSources) { (otherSources + osmStations + stations).associateBy { it.id } }
     var myCar by remember { mutableStateOf(Store.loadCar(ctx)) }
 
-    val ev = remember(releves, byId) { Estimation.evidenceFrom(releves, byId) }
+    var demo by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) } // mode démo : position fictive, rien n'est enregistré ni envoyé ; jamais conservé après fermeture
+    val ev = remember(releves, byId, demo) { Estimation.evidenceFrom(if (demo) releves.filter { byId[it.stationId]?.kind != "privee" } else releves, byId) } // en démo, les bornes privées ne comptent pas (pas de tache autour du domicile)
     var cells by remember { mutableStateOf<List<GridCell>>(emptyList()) }
     LaunchedEffect(ev) { cells = withContext(Dispatchers.Default) { Estimation.grid(ev) } }
     var showGrid by remember { mutableStateOf(false) } // éteint par défaut : estimation expérimentale (audit 19/11)
@@ -296,11 +347,14 @@ fun App() {
     var myPosTs by remember { mutableStateOf(0L) }
 
     val prefs = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
+    var essaiN by remember { mutableStateOf(prefs.getStringSet("essai_ids", emptySet())?.size ?: 0) }
+    var essai by remember { mutableStateOf(prefs.getBoolean("essai", false)) } // mode essai : tout reste sur ce téléphone, jamais envoyé ; conservé entre les lancements
     var mode by remember { mutableStateOf(prefs.getInt("display_mode", 0)) }
     var autoRefresh by remember { mutableStateOf(prefs.getBoolean("auto_refresh", false)) }
     var showModes by remember { mutableStateOf(false) }
     var fltKw by remember { mutableStateOf(prefs.getInt("flt_kw", 0)) }
     var fltOk by remember { mutableStateOf(prefs.getBoolean("flt_ok", false)) }
+    var fltNew by remember { mutableStateOf(prefs.getBoolean("flt_new", false)) }
     var loadingScreen by remember { mutableStateOf(false) }
     var screenError by remember { mutableStateOf<String?>(null) }
     var lastScreen by remember { mutableStateOf<Triple<Double, Double, Int>?>(null) }
@@ -310,37 +364,52 @@ fun App() {
         if (f.exists()) screenOsm = withContext(Dispatchers.IO) { runCatching { Flanders.fromJson(f.readText()) }.getOrDefault(emptyList()) }
     }
 
-    // test13 : doublons supprimés AVANT le filtre « courant continu » (sinon un doublon OSM mal étiqueté réapparaît).
-    val baseUnf = remember(stations, osmStations, flStations, bxStations, walStations) { val man = seedStations + userStations
-        val m = { l: List<Station> -> Overpass.dedupe(man, l, 40.0) }
-        val b = stations + Overpass.dedupe(stations, m(osmStations)); val b2 = b + Overpass.dedupe(b, m(flStations), 40.0); val b3 = b2 + Overpass.dedupe(b2, m(bxStations), 40.0); b3 + Overpass.dedupe(b3, m(walStations), 40.0) }
-    val baseAll = remember(baseUnf, myCar) { val dcOk = carAcceptsDc(myCar); baseUnf.filter { it.current != "DC" || dcOk } }
-    val visibleAll = remember(baseAll, baseUnf, mode, screenOsm, cacheOsm, myPos, releves, byId, myCar) {
-        fun withOsm(): List<Station> = baseAll + (Overpass.dedupe(baseUnf, Overpass.dedupe(seedStations + userStations, screenOsm.distinctBy { it.id }, 40.0), 40.0) + Overpass.dedupe(baseUnf, Overpass.dedupe(seedStations + userStations, cacheOsm.distinctBy { it.id }, 40.0))).distinctBy { it.id }.filter { it.current != "DC" || carAcceptsDc(myCar) }
+    val baseAll = remember(baseUnf, myCar, demo) { val dcOk = carAcceptsDc(myCar); baseUnf.filter { (it.current != "DC" || dcOk) && !(demo && it.kind == "privee") } }
+    val visibleAll = remember(baseAll, baseUnf, mode, screenOsm, cacheOsm, myPos, releves, byId, myCar, demo) {
+        fun withOsm(): List<Station> = baseAll + (Fusion.dedupe(baseUnf, screenOsm, masterIds) + Fusion.dedupe(baseUnf, cacheOsm, masterIds)).distinctBy { it.id }.filter { it.current != "DC" || carAcceptsDc(myCar) }
         when (mode) {
-            1 -> { val tried = releves.mapNotNull { byId[it.stationId] }.distinctBy { it.id }
+            1 -> { val tried = releves.mapNotNull { byId[it.stationId] }.filter { !(demo && it.kind == "privee") }.distinctBy { it.id }
                    baseAll.filter { s -> tried.any { Geo.distanceM(s.lat, s.lon, it.lat, it.lon) <= 1000 } } }
             2 -> withOsm()
-            3 -> { val pos = myPos; val done = releves.map { it.stationId }.toSet()
+            3 -> { val pos = myPos; val done = releves.filterNot { it.horsVerdict() }.map { it.stationId }.toSet()
                    if (pos == null) emptyList() else withOsm().filter { it.id !in done && Geo.distanceM(pos.latitude, pos.longitude, it.lat, it.lon) <= 2000 } }
             else -> baseAll
         }
     }
     // test14f : filtres enregistrés (puissance minimale ; seulement les bornes où ça a déjà chargé pour ma voiture). Puissance inconnue = la borne reste affichée.
-    val visible = remember(visibleAll, fltKw, fltOk, releves, ficheMap, myCar) {
-        if (fltKw == 0 && !fltOk) visibleAll else {
+    // « Nouvelles bornes » : entrées dans notre liste depuis 45 jours (date « d » du workflow) + bornes trouvées en ligne (OpenStreetMap, écran ou cache) et absentes de notre liste.
+    val extraOnline = remember(baseUnf, screenOsm, cacheOsm, masterIds, myCar) {
+        (Fusion.dedupe(baseUnf, screenOsm, masterIds) + Fusion.dedupe(baseUnf, cacheOsm, masterIds)).distinctBy { it.id }.filter { it.current != "DC" || carAcceptsDc(myCar) }
+    }
+    val extraIds = remember(extraOnline) { extraOnline.map { it.id }.toSet() }
+    val newPool = remember(fltNew, visibleAll, extraOnline, mode, myPos, releves) {
+        if (!fltNew) visibleAll else {
+            // Les bornes trouvées en ligne respectent le même critère que le mode d'affichage choisi (près d'un relevé : aucune ; éclaireur : à moins de 2 km et pas encore essayées).
+            val extra = when (mode) {
+                1 -> emptyList()
+                3 -> { val pos = myPos; val done = releves.filterNot { it.horsVerdict() }.map { it.stationId }.toSet()
+                       if (pos == null) emptyList() else extraOnline.filter { it.id !in done && Geo.distanceM(pos.latitude, pos.longitude, it.lat, it.lon) <= 2000 } }
+                else -> extraOnline
+            }
+            (visibleAll + extra).distinctBy { it.id }.filter { StationInfo.recentlyAdded(it) != null || it.id in extraIds }
+        }
+    }
+    // test14f : filtres enregistrés (puissance minimale ; seulement les bornes où ça a déjà chargé pour ma voiture ; seulement les nouvelles). Puissance inconnue = la borne reste affichée.
+    val visible = remember(newPool, fltKw, fltOk, fltNew, releves, ficheMap, myCar) {
+        if (fltKw == 0 && !fltOk) newPool else {
             val okIds = if (fltOk) releves.filter { it.result == Result.OK && (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar }.map { it.stationId }.toSet() else emptySet()
-            visibleAll.filter { s ->
+            newPool.filter { s ->
                 (fltKw == 0 || (StationInfo.powerKw(s) ?: ficheMap[s.id]?.kw).let { it == null || it >= fltKw }) && (!fltOk || s.id in okIds)
             }
         }
     }
     val nReleves = remember(releves, byId) { releves.filter { byId[it.stationId]?.kind != "privee" } }
     val nBornes = remember(nReleves) { nReleves.map { it.stationId }.distinct().size }
-    val stationsJson by produceState(EMPTY, visible, releves, ev, priors, activeEtatsM, myCar, ficheMap, showGrid) {
+    val pastMarks = remember(pastillesM, phonesM) { Pastilles.markers(pastillesM, phonesM, System.currentTimeMillis()) }
+    val stationsJson by produceState(EMPTY, visible, releves, ev, priors, activeEtatsM, myCar, ficheMap, showGrid, pastMarks) {
         value = withContext(Dispatchers.Default) {
             val now = System.currentTimeMillis()
-            stationsGeoJson(visible, releves, ev, priors, activeEtatsM, myCar, { s -> powerTier(StationInfo.powerKw(s) ?: ficheMap[s.id]?.kw, carAcceptsDc(myCar)) }, { _ -> false }, showGrid)
+            stationsGeoJson(visible, releves, ev, priors, activeEtatsM, myCar, { s -> powerTier(StationInfo.powerKw(s) ?: ficheMap[s.id]?.kw, carAcceptsDc(myCar)) }, { _ -> false }, showGrid, pastMarks)
         }
     }
     val gridJson = remember(cells, showGrid) { if (showGrid) gridGeoJson(cells) else EMPTY }
@@ -357,6 +426,7 @@ fun App() {
 
     /** Position GPS : dernière position connue si elle a moins de 60 s, sinon une mise à jour unique (délai 12 s). */
     fun locate(onFail: () -> Unit = {}, onFix: (Location) -> Unit) {
+        if (demo) { onFix(Location("demo").apply { latitude = DEMO_LAT; longitude = DEMO_LON; accuracy = 5f; time = System.currentTimeMillis() }); return }
         val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER).filter {
             try { lm.isProviderEnabled(it) } catch (_: Exception) { false }
@@ -376,6 +446,7 @@ fun App() {
                 if (done) return
                 done = true
                 listeners.forEach { lm.removeUpdates(it) }
+                if (demo) return // le mode démo a été activé pendant la recherche : on ne montre pas la vraie position
                 if (loc != null && loc.accuracy <= 150f) onFix(loc)
                 else { Toast.makeText(ctx, "Position GPS trop imprécise ou introuvable. Réessayez à l'extérieur.", Toast.LENGTH_LONG).show(); onFail() }
             }
@@ -430,9 +501,11 @@ fun App() {
         if (grants.values.any { it }) (todo ?: { showMe() })()
     }
     fun requireLocation(then: () -> Unit) {
-        if (hasLocation()) then()
+        if (demo || hasLocation()) then()
         else { afterPermission = then; permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }
     }
+    // Raccourci d'icône « Urgence batterie » : même chemin que la puce (demande la localisation si besoin).
+    LaunchedEffect(urgenceIntent) { if (urgenceIntent) { showUrgence = true; (ctx as? Activity)?.intent?.action = null; requireLocation { locate { loc -> myPos = LatLng(loc.latitude, loc.longitude); myPosTs = System.currentTimeMillis() } } } }
 
     fun loadScreen(lat: Double, lon: Double, radius: Int) {
         if (loadingScreen) return
@@ -512,40 +585,59 @@ fun App() {
     }
 
     var syncStatus by remember { mutableStateOf("") }
+    fun markEssai(id: String) { if (essai) { prefs.edit().putStringSet("essai_ids", (prefs.getStringSet("essai_ids", emptySet()) ?: emptySet()) + id).apply(); essaiN = prefs.getStringSet("essai_ids", emptySet())?.size ?: 0 } }
+    fun clearEssai() {
+        if (demo) return
+        val ex = prefs.getStringSet("essai_ids", emptySet()) ?: emptySet()
+        userReleves = userReleves.filter { it.id !in ex }
+        val reelles = userReleves.map { it.stationId }.toSet() // une borne créée en essai mais citée par un vrai relevé est gardée
+        userStations = userStations.filter { it.id !in ex || it.id in reelles }; Store.saveUser(ctx, userStations, userReleves)
+        userEtats = userEtats.filter { it.id !in ex }; Store.saveEtats(ctx, userEtats)
+        userPastilles = userPastilles.filter { it.id !in ex }; Store.savePastilles(ctx, userPastilles)
+        userFiches = userFiches.filter { it.id !in ex }; Store.saveFiches(ctx, userFiches)
+        prefs.edit().remove("essai_ids").apply(); essaiN = 0
+    }
     fun runSync() {
+        if (demo) return
         scope.launch {
+            val ex = prefs.getStringSet("essai_ids", emptySet()) ?: emptySet()
             val local = (seedStations + userStations).associateBy { it.id }
-            val res = withContext(Dispatchers.IO) { Sync.sync(ctx, userReleves, local + osmStations.associateBy { it.id }) } .also { syncStatus = Sync.status } ?: run { syncStatus = Sync.status; return@launch }
+            val res = withContext(Dispatchers.IO) { Sync.sync(ctx, userReleves.filter { it.id !in ex }, local + osmStations.associateBy { it.id }) } .also { syncStatus = Sync.status } ?: run { syncStatus = Sync.status; return@launch }
             val parsed = runCatching { Sync.fromRows(res.first, (seedReleves + userReleves).map { it.id }.toSet() + (prefs.getStringSet("replaced_rids", emptySet()) ?: emptySet()), local.keys) }.getOrNull() ?: return@launch
             commuStations = parsed.first
             commuReleves = parsed.second
             Store.saveCommunity(ctx, res.first)
-            val raw = withContext(Dispatchers.IO) { Sync.syncEtats(ctx, userEtats, local + osmStations.associateBy { it.id }) }
+            val raw = withContext(Dispatchers.IO) { Sync.syncEtats(ctx, userEtats.filter { it.id !in ex }, local + osmStations.associateBy { it.id }) }
             if (raw != null) runCatching { Sync.etatsFromRows(raw) }.getOrNull()?.let { commuEtats = it; Store.saveCommunityEtats(ctx, it) }
-            val rawP = withContext(Dispatchers.IO) { Sync.syncPastilles(ctx, userPastilles, local + osmStations.associateBy { it.id }) }
+            val rawP = withContext(Dispatchers.IO) { Sync.syncPastilles(ctx, userPastilles.filter { it.id !in ex }, local + osmStations.associateBy { it.id }) }
             if (rawP != null) runCatching { Sync.pastillesFromRows(rawP) }.getOrNull()?.let { commuPastilles = it; Store.saveCommunityPastilles(ctx, it) }
-            val rawF = withContext(Dispatchers.IO) { Sync.syncFiches(ctx, userFiches, local + osmStations.associateBy { it.id }) }
+            withContext(Dispatchers.IO) { Sync.fetchPastillePhones() }?.let { j -> runCatching { Pastilles.phonesFromRows(j) }.getOrNull()?.let { pastPhones = it; Store.savePhones(ctx, j) } }
+            val rawF = withContext(Dispatchers.IO) { Sync.syncFiches(ctx, userFiches.filter { it.id !in ex }, local + osmStations.associateBy { it.id }) }
             if (rawF != null) runCatching { Sync.fichesFromRows(rawF) }.getOrNull()?.let { commuFiches = it; Store.saveCommunityFiches(ctx, it) }
         }
     }
     var lastSaved by remember { mutableStateOf<String?>(null) }
     var lastPast by remember { mutableStateOf<String?>(null) }
     var secondsPast by remember { mutableStateOf(0) }
-    fun saveReleve(stationId: String?, lat: Double, lon: Double, result: Result, newName: String = "", share: Boolean = true, remote: Boolean = false, ts: String = LocalDate.now().toString(), kw: Double? = null, motif: String = "") {
+    fun saveReleve(stationId: String?, lat: Double, lon: Double, result: Result, newName: String = "", share: Boolean = true, remote: Boolean = false, ts: String = LocalDate.now().toString(), kw: Double? = null, motif: String = "", demarrage: String = "") {
+        if (demo) { Toast.makeText(ctx, "Mode démo : rien n'est enregistré ni envoyé.", Toast.LENGTH_SHORT).show(); return }
         var sid = stationId
         var us = userStations
         if (sid == null) {
             sid = "user-" + UUID.randomUUID().toString().take(12)
+            markEssai(sid) // borne créée en mode essai : marquée, donc jamais exportée ni envoyée
             us = us + Station(sid, newName.trim().ifBlank { "Nouvelle borne" }, "", lat, lon, "AC", "", if (share) "user" else "privee")
         } else if (seedStations.none { it.id == sid } && us.none { it.id == sid }) {
             val o = byId[sid]
             if (o != null) us = us + o
         }
         val rid = "u" + UUID.randomUUID().toString().replace("-", "").take(16)
-        val replaced = userReleves.filter { it.stationId == sid && it.ts == ts && it.car == myCar && !it.seed }
+        markEssai(rid)
+        val exE = prefs.getStringSet("essai_ids", emptySet()) ?: emptySet() // un relevé d'essai ne remplace jamais un vrai relevé, et inversement
+        val replaced = userReleves.filter { it.stationId == sid && it.ts == ts && it.car == myCar && !it.seed && ((it.id in exE) == essai) }
         // Un relevé corrigé le même jour : l'ancien reste sur le serveur ; on retient son identifiant pour ne pas le réafficher comme relevé « de la communauté ».
         if (replaced.isNotEmpty()) prefs.edit().putStringSet("replaced_rids", (prefs.getStringSet("replaced_rids", emptySet()) ?: emptySet()) + replaced.map { it.id }).apply()
-        val ur = userReleves.filterNot { it.stationId == sid && it.ts == ts && it.car == myCar && !it.seed } + Releve(rid, sid, ts, result, null, "", false, myCar, remote, kw, motif)
+        val ur = userReleves.filterNot { it.stationId == sid && it.ts == ts && it.car == myCar && !it.seed && ((it.id in exE) == essai) } + Releve(rid, sid, ts, result, "", false, myCar, remote, kw, motif, demarrage)
         userStations = us
         userReleves = ur
         Store.saveUser(ctx, us, ur)
@@ -582,9 +674,11 @@ fun App() {
     }
 
     fun saveFiche(s: Station, points: Int?, plugs: Int?, kw: Double?, contact: String? = null, pastille: String? = null) {
+        if (demo) { Toast.makeText(ctx, "Mode démo : rien n'est enregistré ni envoyé.", Toast.LENGTH_SHORT).show(); return }
         val us = if (seedStations.none { it.id == s.id } && userStations.none { it.id == s.id }) userStations + s else userStations
         if (us !== userStations) { userStations = us; Store.saveUser(ctx, us, userReleves) }
         userFiches = userFiches + Fiche("f" + UUID.randomUUID().toString().replace("-", "").take(16), s.id, s.name, s.lat, s.lon, points, plugs, kw, System.currentTimeMillis(), contact, pastille)
+        userFiches.lastOrNull()?.let { markEssai(it.id) }
         Store.saveFiches(ctx, userFiches)
         Toast.makeText(ctx, "Fiche enregistrée, merci.", Toast.LENGTH_SHORT).show()
         runSync()
@@ -592,18 +686,22 @@ fun App() {
 
     /** Enregistre une pastille vue (constat visuel) ; une fois par borne, pastille et jour. */
     fun savePastille(s: Station, code: String, tested: Boolean) {
+        if (demo) { Toast.makeText(ctx, "Mode démo : rien n'est enregistré ni envoyé.", Toast.LENGTH_SHORT).show(); return }
         val now = System.currentTimeMillis()
         if (Pastilles.isDup(userPastilles, s.id, code, now)) { Toast.makeText(ctx, "Déjà enregistré aujourd'hui pour cette borne.", Toast.LENGTH_SHORT).show(); return }
         val us = if (seedStations.none { it.id == s.id } && userStations.none { it.id == s.id }) userStations + s else userStations
         if (us !== userStations) { userStations = us; Store.saveUser(ctx, us, userReleves) }
         val pid = "p" + UUID.randomUUID().toString().replace("-", "").take(16)
+        markEssai(pid)
         userPastilles = userPastilles + Pastille(pid, s.id, code, tested, now)
         Store.savePastilles(ctx, userPastilles)
         lastPast = pid // envoi différé de 8 s (voir LaunchedEffect), comme pour un relevé : le temps d'annuler
     }
 
     fun addStationHere(ll: LatLng, name: String, points: Int?, plugs: Int?, kw: Double?) {
+        if (demo) { Toast.makeText(ctx, "Mode démo : rien n'est enregistré ni envoyé.", Toast.LENGTH_SHORT).show(); return }
         val s = Station("user-" + UUID.randomUUID().toString().take(12), name, "", ll.latitude, ll.longitude, "AC", "", "user")
+        markEssai(s.id)
         userStations = userStations + s
         Store.saveUser(ctx, userStations, userReleves)
         selectedId = s.id; tapEstimate = null
@@ -613,16 +711,20 @@ fun App() {
 
     /** Enregistre un état de borne (une fois par borne, état et jour) ; envoi immédiat en arrière-plan. */
     fun saveEtat(s: Station, kind: EtatKind, declared: Boolean, car: String, source: String, at: Long = System.currentTimeMillis()) {
+        if (demo) { Toast.makeText(ctx, "Mode démo : rien n'est enregistré ni envoyé.", Toast.LENGTH_SHORT).show(); return }
         val today = LocalDate.now().toString()
         val atDay = java.time.Instant.ofEpochMilli(at).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
         val dup = userEtats.any { it.stationId == s.id && it.kind == kind && it.declared == declared && java.time.Instant.ofEpochMilli(it.ts).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString() == atDay }
         if (dup) { Toast.makeText(ctx, "Déjà signalé aujourd'hui pour cette borne.", Toast.LENGTH_SHORT).show(); return }
         val us = if (seedStations.none { it.id == s.id } && userStations.none { it.id == s.id }) { userStations + s } else userStations
         if (us !== userStations) { userStations = us; Store.saveUser(ctx, us, userReleves) }
-        val e = Etat("e" + UUID.randomUUID().toString().replace("-", "").take(16), s.id, kind, declared, car, source, at)
+        // « Panne réglée » doit toujours être plus récente que la panne qu'elle annule, même si l'heure du téléphone est en retard sur celle du serveur.
+        val atFinal = if (kind == EtatKind.REPARE) maxOf(at, (activeEtatsM.filter { it.stationId == s.id && (it.kind == EtatKind.PANNE || it.kind == EtatKind.NEMARCHEPAS) }.maxOfOrNull { it.ts } ?: 0L) + 1000L) else at
+        val e = Etat("e" + UUID.randomUUID().toString().replace("-", "").take(16), s.id, kind, declared, car, source, atFinal)
         userEtats = userEtats + e
+        markEssai(e.id)
         Store.saveEtats(ctx, userEtats)
-        Toast.makeText(ctx, if (declared) "Enregistré : déclaré, non vérifié." else "Signalement enregistré.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(ctx, if (declared) "Enregistré : déclaré, non vérifié." else if (kind == EtatKind.REPARE) "Panne effacée." else "Signalement enregistré.", Toast.LENGTH_SHORT).show()
         runSync()
     }
 
@@ -645,7 +747,7 @@ fun App() {
         )
 
         Text(
-            "${nReleves.size} relevés · $nBornes bornes couvertes${if (syncStatus.isNotBlank()) " · $syncStatus" else ""} · © OpenStreetMap contributors · OpenFreeMap · v${BuildConfig.VERSION_NAME}",
+            (if (demo) "Mode démo : position fictive, rien n'est enregistré ni envoyé" else if (essai) "Mode essai : vos saisies restent sur ce téléphone, rien n'est envoyé" else "${nReleves.size} relevés · $nBornes bornes couvertes${if (syncStatus.isNotBlank()) " · $syncStatus" else ""}") + " · © OpenStreetMap contributors · OpenFreeMap · v${BuildConfig.VERSION_NAME}",
             fontSize = 12.sp, color = Color(0xFF374151), maxLines = 4, lineHeight = 14.sp,
             modifier = Modifier.align(Alignment.BottomStart).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom)).padding(start = 8.dp, bottom = 128.dp, end = 80.dp).background(Color(0xE6FFFFFF)).padding(horizontal = 4.dp)
         )
@@ -654,18 +756,19 @@ fun App() {
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 TopChip(selected = false, onClick = { showCar = true }, modifier = Modifier.widthIn(max = 200.dp)) { Text(myCar, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                 TopChip(selected = false, onClick = { showAbout = true }, modifier = Modifier.semantics { contentDescription = "À propos, licences et diagnostic" }) { Text("ⓘ") }
-                TopChip(selected = showGrid, onClick = { showGrid = !showGrid }) { Text("Zones (expérimental)") }
-                TopChip(selected = mode != 0 || fltKw != 0 || fltOk, onClick = { showModes = true }) { Text(if (loadingScreen) "Bornes…" else (when (mode) { 1 -> "Bornes : près d'un relevé"; 2 -> "Bornes : + en ligne"; 3 -> "Bornes : éclaireur"; else -> "Bornes" }) + (if (fltKw != 0 || fltOk) " · filtrées" else "")) }
                 TopChip(selected = false, onClick = { showFaq = true }) { Text("FAQ") }
+                TopChip(selected = showGrid, onClick = { showGrid = !showGrid }) { Text("Zones (expérimental)") }
+                TopChip(selected = mode != 0 || fltKw != 0 || fltOk || fltNew, onClick = { showModes = true }) { Text(if (loadingScreen) "Bornes…" else (when (mode) { 1 -> "Bornes : près d'un relevé"; 2 -> "Bornes : + en ligne"; 3 -> "Bornes : éclaireur"; else -> "Bornes" }) + (if (fltKw != 0 || fltOk || fltNew) " · filtrées" else "")) }
                 TopChip(selected = false, onClick = { showUrgence = true; requireLocation { locate { loc -> myPos = LatLng(loc.latitude, loc.longitude); myPosTs = System.currentTimeMillis() } } }, modifier = Modifier.semantics { contentDescription = "Urgence batterie : bornes proches pour votre voiture" }) { Text("🔋 Urgence") }
             }
             if (visible.isEmpty() && !loadingScreen && !showWelcome) {
                 val why = when {
+                    fltNew && newPool.isEmpty() -> "Aucune nouvelle borne pour le moment. « Nouvelle » = entrée dans notre liste depuis 45 jours, ou trouvée en ligne et absente de la liste (choisissez « Compléter en ligne » sur une zone, puis revenez). Notre registre des premières vues ne date que de fin novembre : il est vide tant qu'aucune borne n'a été ajoutée depuis."
                     visibleAll.isNotEmpty() && (fltKw != 0 || fltOk) -> "Aucune borne ne correspond à vos filtres (puissance minimale, « ça a déjà chargé »)."
                     mode == 3 && myPos == null -> "« Bornes : éclaireur » a besoin de votre position : touchez le bouton bleu en bas à droite pour vous localiser."
                     mode == 3 -> "Aucune borne non essayée à moins de 2 km de vous."
                     mode == 1 -> "Aucun relevé n'est encore enregistré : « Bornes : près d'un relevé » n'a rien à montrer."
-                    fltKw != 0 || fltOk -> "Aucune borne ne correspond à vos filtres (puissance minimale, « ça a déjà chargé »)."
+                    fltKw != 0 || fltOk || fltNew -> "Aucune borne ne correspond à vos filtres (puissance minimale, « ça a déjà chargé », « nouvelles bornes »)."
                     else -> "Aucune borne à afficher pour le moment (les données sont peut-être encore en cours de chargement)."
                 }
                 Card(Modifier.padding(top = 6.dp).fillMaxWidth()) {
@@ -690,13 +793,13 @@ fun App() {
                         Box(Modifier.size(16.dp).clip(CircleShape).background(Color(0xFF8FBF98)).border(3.dp, Color(0xFF374151), CircleShape))
                         Text("Contour gris foncé épais = essayée seulement avec un autre modèle que le vôtre (la couleur est celle de ces essais)", fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.weight(1f).padding(start = 8.dp))
                     }
-                    LegendRing(dashed = false, color = "#7e22ce", double = true, text = "Double anneau violet = borne à essayer, classée « 400 V » par la concession de Bruxelles Mobilité : probablement compatible (hypothèse, non vérifié) ; vérifiez la pastille verte sur place")
+                    LegendRing(dashed = false, color = "#7e22ce", double = true, text = "Double anneau violet = borne à essayer, classée « 400 V » par la concession de Bruxelles Mobilité : probablement compatible (hypothèse, non vérifié) ; vérifiez le sticker vert sur place")
                     LegendRing(dashed = true, color = "#4b5563", text = "Anneau gris pointillé = borne de la liste « 230 V » de TotalEnergies (données du 16/11) : mono ou 3×230 V non précisé, probablement non compatible (hypothèse)")
                     LegendRing(dashed = false, color = "#b42318", text = "Anneau rouge = panne signalée (non vérifiée)")
                     LegendRing(dashed = true, color = "#1a56c4", text = "Anneau bleu pointillé = déclaré, non testé")
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(14.dp).clip(CircleShape).background(Color(0xFFBFE0C0))); Box(Modifier.padding(start = 2.dp).size(14.dp).clip(CircleShape).background(Color(0xFFEEBDBD)))
-                        Text("Point vert ou rose pâle (si « Zones » est activé) = estimation, pas un essai", fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.weight(1f).padding(start = 8.dp))
+                        Box(Modifier.size(14.dp).clip(CircleShape).background(Color(0xFFBFE0C0))); Box(Modifier.padding(start = 2.dp).size(14.dp).clip(CircleShape).background(Color(0xFFEEBDBD))); Box(Modifier.padding(start = 2.dp).size(14.dp).clip(CircleShape).background(Color(0xFFC9CDD2)))
+                        Text("Pour une borne pas encore essayée, l'application estime un résultat d'après les essais des bornes voisines (si « Zones » est activé) : point vert pâle = plutôt compatible, rose pâle = plutôt non, gris clair = estimation indécise (ni plutôt oui, ni plutôt non). C'est une estimation, pas un essai.", fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.weight(1f).padding(start = 8.dp))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).background(Color(0xFF1F2937)).padding(horizontal = 5.dp, vertical = 1.dp)) { Text("⚡20+", fontSize = 11.sp, color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) }
@@ -715,9 +818,11 @@ fun App() {
             val sel = selectedId?.let { byId[it] }
             if (sel != null) {
                 StationCard(sel, releves, myCar, Etats.lines(Etats.shown(activeEtatsM, sel.id, releves)), nowTick, ficheMap[sel.id], onClose = { selectedId = null },
-                    onReport = { r -> confirmReport = r }, pastilleText = Pastilles.summary(allPastilles, sel.id), onPastille = { showPastille = true },
+                    onReport = { r -> confirmReport = r }, pastilleText = Pastilles.summary(pastillesM, sel.id, phonesM), onPastille = { showPastille = true }, onQr = { qrFor = sel; qrTexts = null },
+                    indice = Indice.of(sel, releves.filter { it.stationId == sel.id && (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar }, ficheMap[sel.id]?.pastille, pastillesM),
                     onEtat = { showEtat = true }, onWarn = { showWarn = true }, onFiche = { showFiche = true },
-                    onRename = if (sel.id.startsWith("user-")) ({ showRename = true }) else null)
+                    onRename = if (sel.id.startsWith("user-")) ({ showRename = true }) else null,
+                    voisinText = remember(sel.id, baseUnf, releves, myCar) { Voisins.hint(sel, baseUnf, releves, myCar) })
             }
             screenError?.let { msg ->
                 Card(Modifier.fillMaxWidth()) {
@@ -741,7 +846,7 @@ fun App() {
             if (lastPast != null) {
                 Card(Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Pastille enregistrée ✓ · envoi dans $secondsPast s", Modifier.weight(1f))
+                        Text("Sticker enregistré ✓ · envoi dans $secondsPast s", Modifier.weight(1f))
                         TextButton(onClick = { undoPast() }) { Text("Annuler") }
                     }
                 }
@@ -789,7 +894,7 @@ fun App() {
         confirmButton = { TextButton(onClick = {
             Store.saveCar(ctx, myCar)
             ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE).edit().putBoolean("welcomed", true).apply()
-            showWelcome = false
+            showWelcome = false; showIntro = true
         }) { Text("Commencer") } }
     )
 
@@ -798,7 +903,7 @@ fun App() {
         title = { Text("Bornes affichées") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text("Que montrer sur la carte ?", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937))
+                SectionHead("1 · Que montrer sur la carte ?", top = 0)
                 val opts = listOf(
                     "Toutes les bornes connues" to "Belgique, par défaut, hors ligne",
                     "Près des relevés" to "Seulement les bornes à moins de 1 km d'un relevé (là où quelqu'un a déjà essayé)",
@@ -814,15 +919,16 @@ fun App() {
                     Column(Modifier.padding(10.dp)) {
                         Text("Le violet du mode « Éclaireur »", fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, color = Color(0xFF581C87))
                         Text("◎ Double anneau violet : classée « 400 V » par la concession de Bruxelles Mobilité.", fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.padding(top = 4.dp))
-                        Text("Non vérifié, seule la pastille verte prouve.", fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.padding(top = 4.dp))
+                        Text("Non vérifié, seul le sticker vert prouve.", fontSize = 12.sp, color = Color(0xFF374151), modifier = Modifier.padding(top = 4.dp))
                     }
                 }
-                HorizontalDivider(color = Color(0xFFD1D5DB), modifier = Modifier.padding(top = 12.dp))
-                Text("Filtres (enregistrés)", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
+                SectionHead("2 · Filtres (enregistrés)", top = 20)
                 listOf(0 to "Toutes les puissances", 11 to "Au moins 11 kW", 20 to "Au moins 20 kW", 43 to "Au moins 43 kW").filter { it.first != 43 || carAcceptsDc(myCar) || fltKw == 43 }.forEach { (v, t) -> ChoiceRow(fltKw == v, t, 13) { fltKw = v; prefs.edit().putInt("flt_kw", v).apply() } }
                 CheckRow(fltOk, "Seulement les bornes où ça a déjà chargé avec ma voiture", 13) { fltOk = it; prefs.edit().putBoolean("flt_ok", it).apply() }
+                CheckRow(fltNew, "Seulement les nouvelles bornes (ajoutées à la liste depuis 45 jours, ou trouvées en ligne et absentes de la liste)", 13) { fltNew = it; prefs.edit().putBoolean("flt_new", it).apply() }
+                Text("Une borne récente a peut-être plus de chances d'être en 3×400 V + N : hypothèse, pas une mesure.", fontSize = 12.sp, color = Color(0xFF4B5563))
                 Text("Une borne dont la puissance est inconnue reste affichée.", fontSize = 12.sp, color = Color(0xFF4B5563))
-                Text("Mise à jour de la liste", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 12.dp))
+                SectionHead("3 · Mise à jour de la liste", top = 20)
                 CheckRow(autoRefresh, "Actualiser les bornes de Bruxelles une fois par mois (1 à 2 Mo depuis OpenStreetMap ; zone fixe, votre position n'est pas envoyée). La liste de Belgique est déjà dans l'application.", 13) { autoRefresh = it; prefs.edit().putBoolean("auto_refresh", it).apply() }
                 Text("Pour une autre zone du mode « zone affichée » : zoomez, puis rechoisissez ce mode.", fontSize = 12.sp, color = Color(0xFF4B5563), modifier = Modifier.padding(top = 6.dp))
             }
@@ -832,19 +938,38 @@ fun App() {
 
     if (showFaq) FaqDialog(onDismiss = { showFaq = false })
 
+    if (showIntro) IntroDialog(onDone = { showIntro = false })
     if (showCar) CarDialog(myCar, onDismiss = { showCar = false }) { c -> myCar = c; Store.saveCar(ctx, c); showCar = false }
 
-    if (showAbout) AboutDialog(onDismiss = { showAbout = false }, onListsUpdated = { scope.launch { embeddedOsm = withContext(Dispatchers.Default) { Store.loadEmbeddedOsm(ctx) }; bxStations = withContext(Dispatchers.Default) { Brussels.loadEmbedded(ctx) } } })
+    if (showAbout) AboutDialog(onDismiss = { showAbout = false },
+        demo = demo,
+        essai = essai, essaiCount = essaiN, onClearEssai = { clearEssai() }, onEssai = { on -> essai = on; prefs.edit().putBoolean("essai", on).apply() },
+        onDemo = { on -> demo = on; if (on) { tapEstimate = null; val ll = LatLng(DEMO_LAT, DEMO_LON); myPos = ll; myPosTs = System.currentTimeMillis(); selectedId = null; map?.animateCamera(CameraUpdateFactory.newLatLngZoom(ll, 14.5)); showAbout = false } else { myPos = null; selectedId = null } },
+        exportText = { val ex = prefs.getStringSet("essai_ids", emptySet()) ?: emptySet() // les saisies du mode essai ne sortent jamais du téléphone
+            val reelles = userReleves.filter { it.id !in ex }; val rs = reelles.map { it.stationId }.toSet()
+            Store.userJson(userStations.filter { it.id !in ex || it.id in rs }, reelles) },
+        importText = { txt ->
+            if (demo) "Mode démo : l'import est désactivé (rien n'est enregistré)." else if (essai) "Mode essai : l'import est désactivé, car il rendrait vos relevés « jamais envoyés » et exclus des exports. Quittez le mode essai (en bas de ⓘ), puis importez." else try {
+                val (us, ur) = Store.importUser(txt, userStations, userReleves)
+                val oldIds = userReleves.map { it.id }.toSet(); val oldSt = userStations.map { it.id }.toSet()
+                val n = ur.size - userReleves.size; val nSt = us.size - userStations.size
+                userStations = us; userReleves = ur
+                Store.saveUser(ctx, us, ur)
+                if (n > 0) runSync()
+                if (n > 0 || nSt > 0) "$n relevé(s) et $nSt borne(s) ajouté(s)." + (if (n > 0) " Les relevés seront envoyés au serveur comme les vôtres (les bornes seules ne sont pas envoyées)." else "") else "Rien de nouveau : tout ce que contient ce fichier est déjà sur ce téléphone, ou n'est pas valide (position hors Belgique, date illisible)."
+            } catch (e: Exception) { DiagLog.add("Import : ${e.javaClass.simpleName}"); "Ce fichier n'est pas un export de l'application." }
+        },
+        onListsUpdated = { scope.launch { embeddedOsm = withContext(Dispatchers.Default) { Store.loadEmbeddedOsm(ctx) }; bxStations = withContext(Dispatchers.Default) { Brussels.loadEmbedded(ctx) } } })
 
     selectedId?.let { byId[it] }?.let { sel ->
-        if (showEtat) EtatDialog(sel, myCar, onDismiss = { showEtat = false },
+        if (showEtat) EtatDialog(sel, myCar, onQr = { showEtat = false; qrFor = sel; qrTexts = null }, hasPanne = Etats.shown(activeEtatsM, sel.id, releves).any { it.kind == EtatKind.PANNE || it.kind == EtatKind.NEMARCHEPAS }, onDismiss = { showEtat = false },
             onEtat = { kind, declared, car, source -> saveEtat(sel, kind, declared, car, source); showEtat = false },
             onPast = { result, date ->
                 if (result != null) saveReleve(sel.id, sel.lat, sel.lon, result, remote = true, ts = date)
                 else saveEtat(sel, EtatKind.PANNE, false, myCar, "plus sur place",
                     if (date == LocalDate.now().toString()) System.currentTimeMillis() else LocalDate.parse(date).atTime(12, 0).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
                 showEtat = false })
-        if (showPastille) PastilleDialog(sel, onDismiss = { showPastille = false }, onSave = { c, t -> savePastille(sel, c, t); showPastille = false })
+        if (showPastille) PastilleDialog(sel, onDismiss = { showPastille = false }, onFaq = { showPastille = false; showFaq = true }, onSave = { c, t -> savePastille(sel, c, t); showPastille = false })
         confirmReport?.let { r ->
             AlertDialog(onDismissRequest = { confirmReport = null },
                 title = { Text(if (r == Result.OK) "Enregistrer « Ça charge » ?" else "Enregistrer « Ne charge pas » ?", maxLines = 2) },
@@ -852,17 +977,54 @@ fun App() {
                 confirmButton = { TextButton(onClick = { confirmReport = null; saveReleve(sel.id, sel.lat, sel.lon, r, remote = true) }) { Text("Enregistrer") } },
                 dismissButton = { TextButton(onClick = { confirmReport = null }) { Text("Annuler") } })
         }
-        if (showRename) RenameDialog(sel.name, onDismiss = { showRename = false }) { n -> userStations = userStations.map { if (it.id == sel.id) it.copy(name = n) else it }; Store.saveUser(ctx, userStations, userReleves); showRename = false }
+        if (showRename) RenameDialog(sel.name, onDismiss = { showRename = false }) { n -> if (!demo) { userStations = userStations.map { if (it.id == sel.id) it.copy(name = n) else it }; Store.saveUser(ctx, userStations, userReleves) }; showRename = false }
         if (showWarn) WarnDialog(sel, ficheMap[sel.id]?.contact, myCar, onDismiss = { showWarn = false })
         if (showFiche) FicheDialog(sel, ficheMap[sel.id], StationInfo.osmPoints(sel), onDismiss = { showFiche = false }, onSave = { p, q, k, c, pa -> saveFiche(sel, p, q, k, c, pa); showFiche = false })
     }
     newStationAt?.let { ll -> NewStationDialog(onDismiss = { newStationAt = null }, onSave = { n, p, q, k -> addStationHere(ll, n, p, q, k); newStationAt = null }) }
+    qrFor?.let { qs ->
+        val texts = qrTexts
+        if (texts == null) QrScanDialog(onTexts = { t -> qrTexts = t }, onDismiss = { qrFor = null })
+        else AlertDialog(onDismissRequest = { qrFor = null; qrTexts = null },
+            title = { Row(verticalAlignment = Alignment.CenterVertically) { QrIcon(22.dp); Text("  QR lu(s) : ${texts.size}") } },
+            text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                texts.forEach { txt ->
+                    val found = QrBorne.find(txt, qrLearned)
+                    val target: Station? = when (found) {
+                        is QrBorne.Found.Station -> byId[found.id]?.takeIf { !(demo && it.kind == "privee") }
+                        is QrBorne.Found.Concession -> baseAll.filter { Geo.distanceM(it.lat, it.lon, found.lat, found.lon) < 60.0 }.minByOrNull { Geo.distanceM(it.lat, it.lon, found.lat, found.lon) }
+                        QrBorne.Found.Unknown -> null
+                    }
+                    Text("Code : ${QrBorne.key(txt).take(40)}", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    when {
+                        target != null && target.id == qs.id -> Text("✓ C'est bien cette borne.", fontSize = 13.sp)
+                        target != null -> {
+                            Text("Ce code correspond à une autre borne : ${target.name}.", fontSize = 13.sp)
+                            TextButton(onClick = { selectedId = target.id; tapEstimate = null; map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(target.lat, target.lon), 17.0)); qrFor = null; qrTexts = null }) { Text("Voir cette borne") }
+                        }
+                        found is QrBorne.Found.Concession -> Text("Référence reconnue (concession de Bruxelles Mobilité), mais aucune borne de la carte à moins de 60 m.", fontSize = 13.sp)
+                        else -> {
+                            Text(if (demo) "Code inconnu (mode démo : l'association est désactivée)." else "Code inconnu. Vous pouvez l'associer à cette borne, sur ce téléphone seulement : le prochain scan la retrouvera.", fontSize = 13.sp)
+                            if (!demo) TextButton(onClick = {
+                                qrLearned = qrLearned + (QrBorne.key(txt) to qs.id)
+                                prefs.edit().putString("qr_associations", QrBorne.learnedToJson(qrLearned)).apply()
+                                Toast.makeText(ctx, "Code associé à cette borne (sur ce téléphone).", Toast.LENGTH_SHORT).show()
+                            }) { Text("Associer à « ${qs.name.take(30)} »") }
+                        }
+                    }
+                }
+                Text("Aucune photo n'est gardée : seul le texte du code est lu sur ce téléphone.", fontSize = 11.sp, color = Color(0xFF4B5563))
+            } },
+            confirmButton = { TextButton(onClick = { qrTexts = null }) { Text("Lire un autre QR") } },
+            dismissButton = { TextButton(onClick = { qrFor = null; qrTexts = null }) { Text("Fermer") } })
+    }
     if (showUrgence) UrgenceDialog(myPos, myPosTs, nowTick, baseAll, releves, myCar, activeEtatsM.filter { it.kind == EtatKind.PANNE }.map { it.stationId }.distinct().filter { id -> Etats.shown(activeEtatsM, id, releves).any { it.kind == EtatKind.PANNE } }.toSet(), ev, priors,
-        ficheMap.mapNotNull { (k, v) -> v.kw?.let { k to it } }.toMap(), onDismiss = { showUrgence = false })
+        ficheMap.mapNotNull { (k, v) -> v.kw?.let { k to it } }.toMap(),
+        indiceOf = { st -> Indice.of(st, releves.filter { it.stationId == st.id && (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar }, ficheMap[st.id]?.pastille, pastillesM) }, demo = demo, onRetry = { requireLocation { locate { loc -> myPos = LatLng(loc.latitude, loc.longitude); myPosTs = System.currentTimeMillis() } } }, onDismiss = { showUrgence = false })
 
     pending?.let { p ->
-        ConfirmDialog(p, myCar, onDismiss = { pending = null }) { stationId, name, share, kw, motif ->
-            saveReleve(stationId, p.lat, p.lon, p.result, name, share, remote = stationId != null && (p.candidates.firstOrNull { it.first.id == stationId }?.second ?: 0.0) > 60.0, kw = kw, motif = motif)
+        ConfirmDialog(p, myCar, onDismiss = { pending = null }) { stationId, name, share, kw, motif, demarrage ->
+            saveReleve(stationId, p.lat, p.lon, p.result, name, share, remote = stationId != null && (p.candidates.firstOrNull { it.first.id == stationId }?.second ?: 0.0) > 60.0, kw = kw, motif = motif, demarrage = demarrage)
             pending = null
         }
     }
@@ -914,7 +1076,7 @@ fun Legend(color: String, text: String, square: Boolean = false) {
 
 
 @Composable
-fun StationCard(s: Station, releves: List<Releve>, myCar: String, etatLines: List<EtatLine>, now: Long, fiche: Fiche?, onClose: () -> Unit, onReport: (Result) -> Unit, onEtat: () -> Unit, onWarn: () -> Unit, onFiche: () -> Unit, onRename: (() -> Unit)? = null, pastilleText: String? = null, onPastille: () -> Unit = {}) {
+fun StationCard(s: Station, releves: List<Releve>, myCar: String, etatLines: List<EtatLine>, now: Long, fiche: Fiche?, onClose: () -> Unit, onReport: (Result) -> Unit, onEtat: () -> Unit, onWarn: () -> Unit, onFiche: () -> Unit, onRename: (() -> Unit)? = null, pastilleText: String? = null, onPastille: () -> Unit = {}, indice: IndiceInfo? = null, onQr: () -> Unit = {}, voisinText: String? = null) {
     val ctx = LocalContext.current
     val mine = releves.filter { it.stationId == s.id }
     val verdicts = remember(mine, myCar) { verdictsByModel(mine, myCar) }
@@ -937,17 +1099,41 @@ fun StationCard(s: Station, releves: List<Releve>, myCar: String, etatLines: Lis
                 if (i == 0) Text("Pour votre ${v.car} : $sym${v.status.label}", color = col, style = MaterialTheme.typography.titleSmall)
                 else Text("${if (i == 1) "Autres modèles — " else ""}${v.car} : $sym${v.status.label}", color = col, fontSize = 13.sp)
             }
+            StationInfo.addedLabel(s)?.let { Text("+ $it", fontSize = 13.sp, color = Color(0xFF0F5132)) }
+            indice?.let { ind -> if (ind.niveau != Indice.ESSAYEE) {
+                val full = "${ind.niveau} : ${ind.texte}"
+                val key = Regex("(Hypothèse|Constat visuel) : probablement non compatible\\.").find(full)
+                Text(
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        append(full)
+                        key?.let { addStyle(androidx.compose.ui.text.SpanStyle(color = Color(0xFFB42318), fontWeight = FontWeight.Bold), it.range.first, it.range.last + 1) }
+                    },
+                    fontSize = 13.sp, color = when (ind.favorable) { true -> Color(0xFF7E22CE); else -> Color(0xFF4B5563) }, fontWeight = if (ind.favorable == null) null else FontWeight.Medium
+                )
+            } }
+            voisinText?.let { Text("📍 $it", fontSize = 13.sp, color = Color(0xFF1A4F8B), modifier = Modifier.padding(top = 2.dp)) }
             val h = StationInfo.history(mine, myCar)
             if (h.n > 0) Text((if (h.lastOk != null) "Dernière charge réussie ($myCar) : ${h.lastOk} · " else "Aucune charge réussie ($myCar) · ") + "${h.ok} sur ${h.n} essai${if (h.n > 1) "s" else ""}", fontSize = 13.sp)
-            PlugRow(StationInfo.powerLabel(s, fiche?.kw, mine.mapNotNull { it.kw }.maxOrNull()), Plugs.of(s), StationInfo.sourceLabel(s))
+            PlugRow(StationInfo.powerLabel(s, fiche?.kw, mine.mapNotNull { it.kw }.maxOrNull()), Plugs.of(s), StationInfo.sourceLabel(s), fiche?.points ?: StationInfo.osmPoints(s) ?: 1)
             (Fiches.describe(fiche?.points, fiche?.plugs) ?: StationInfo.osmPoints(s)?.let { "${it} point${if (it > 1) "s" else ""} de charge (${StationInfo.sourceLabel(s) ?: "source ouverte"})" })?.let { Text("🔌 $it", fontSize = 13.sp) }
             StationInfo.address(s)?.let { Text("📍 $it", fontSize = 13.sp) }
-            StationInfo.phases(s)?.let { Text("⚡ Courant alternatif $it (supposé, d'après les données ouvertes de Bruxelles : à confirmer sur la borne ; selon charge.brussels, la pastille verte indique 3×400 V + N)", fontSize = 13.sp) }
-            if (s.dansLaConcession() && Essai400.near(s.lat, s.lon) != null && mine.none { Essai400.concluant(it) && (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar }) Text("🟣 Classée 400 V - 22 kW (concession Bruxelles Mobilité) : probablement compatible (hypothèse). Vérifiez la pastille verte.", fontSize = 13.sp, color = Color(0xFF7E22CE))
-            if (s.anneauEv(mine.filter { (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar })) Text("🟣 Triphasée 22 kW ou 11 kW d'après le flux d'EnergyVision (20/11) : à essayer (hypothèse). Le flux ne dit rien du neutre ; la pastille verte reste la seule preuve.", fontSize = 13.sp, color = Color(0xFF7E22CE))
-            if (s.anneau230() && mine.none { Essai400.concluant(it) && (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar }) Text("⚪ Liste « 230 V » de TotalEnergies (données du 16/11) : mono ou 3×230 V non précisé ; probablement non compatible (hypothèse).", fontSize = 13.sp, color = Color(0xFF4B5563))
-            if (pastilleText != null) Text("🏷 $pastilleText", fontSize = 13.sp)
-            else fiche?.pastille?.let { pastilleLabel(it) }?.let { Text("🏷 Pastille vue sur la borne : $it (constat visuel, non vérifié)", fontSize = 13.sp) }
+            StationInfo.phases(s)?.let { Text("⚡ Courant alternatif $it (supposé, d'après les données ouvertes de Bruxelles : à confirmer sur la borne ; selon charge.brussels, le sticker vert indique 3×400 V + N)", fontSize = 13.sp) }
+            if (s.anneauEv(mine.filter { (canonicalCar(it.car) ?: DEFAULT_CAR) == myCar })) Text("🟣 Triphasée 22 kW ou 11 kW d'après le flux d'EnergyVision (20/11) : à essayer (hypothèse). Le flux ne dit rien du neutre ; le sticker vert reste la seule preuve.", fontSize = 13.sp, color = Color(0xFF7E22CE))
+            val pastilleLine = pastilleText ?: fiche?.pastille?.let { pastilleLabel(it) }?.let { "Sticker vu sur la borne : $it (constat visuel, non vérifié)" }
+            if (pastilleLine != null) {
+                // étiquette : rond de la couleur de l'autocollant (bleu, vert, blanc à contour rouge ; gris si autre ou aucune)
+                val dot = when {
+                    pastilleLine.contains("bleu", true) -> Color(0xFF1D4ED8)
+                    pastilleLine.contains("vert", true) -> Color(0xFF16A34A)
+                    pastilleLine.contains("blanc", true) -> Color.White
+                    else -> Color(0xFF9CA3AF)
+                }
+                val edge = if (pastilleLine.contains("blanc", true)) Color(0xFFB91C1C) else dot
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(16.dp).clip(CircleShape).background(dot).border(2.dp, edge, CircleShape))
+                    Text(pastilleLine, fontSize = 13.sp, modifier = Modifier.padding(start = 6.dp))
+                }
+            }
             val limited = StationInfo.accessLabel(s)?.let { it.startsWith("Semi") || it.startsWith("Accès") } == true
             StationInfo.accessLabel(s)?.let { Text((if (limited) "⚠ " else "🔒 ") + it, fontSize = 13.sp, color = if (limited) Color(0xFFB42318) else Color(0xFFB45309), fontWeight = if (limited) FontWeight.Medium else null) }
             StationInfo.openingHours(s)?.let { val h24 = it.trim() == "24/7"; Text((if (h24) "Horaires : " else "⚠ Horaires (à vérifier avant d'y aller) : ") + it, fontSize = 13.sp, color = if (h24) Color(0xFF4B5563) else Color(0xFFB42318)) }
@@ -967,19 +1153,20 @@ fun StationCard(s: Station, releves: List<Releve>, myCar: String, etatLines: Lis
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(onClick = { onReport(Result.OK) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { contentDescription = "Ça charge sur cette borne" }, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF15803D))) { Text("✅ Ça charge", fontSize = 13.sp, maxLines = 1, softWrap = false) }
             Button(onClick = { onReport(Result.REFUS) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { contentDescription = "Ne charge pas sur cette borne" }, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB91C1C))) { Text("❌ Ne charge pas", fontSize = 13.sp, maxLines = 1, softWrap = false) }
-            Column(Modifier.width(52.dp).clickable(onClick = onPastille).semantics { contentDescription = "Pastille vue : déclarer la pastille de compatibilité collée sur la borne (simple constat visuel)" }, horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(34.dp).clip(CircleShape).background(Color(0xFF16A34A)), contentAlignment = Alignment.Center) { Box(Modifier.size(24.dp).clip(CircleShape).border(2.dp, Color.White, CircleShape)) }
-                Text("Pastille", fontSize = 11.sp, maxLines = 1)
+            Column(Modifier.width(78.dp).clickable(onClick = onPastille).semantics { contentDescription = "Sticker sur la borne : déclarer le sticker de compatibilité collé sur la borne (simple constat visuel)" }, horizontalAlignment = Alignment.CenterHorizontally) {
+                StickerIcon(34.dp)
+                Text("Sticker sur la borne", fontSize = 11.sp, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = {
                 val uri = Uri.parse("geo:${s.lat},${s.lon}?q=${s.lat},${s.lon}(${Uri.encode(s.name)})")
                 ctx.safeStart(Intent(Intent.ACTION_VIEW, uri))
-            }) { Text("Itinéraire") }
-            TextButton(onClick = onEtat) { Text("État / panne…") }
+            }, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) { Text("Itinéraire", maxLines = 1, softWrap = false, fontSize = 13.sp) }
+            TextButton(onClick = onEtat, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)) { Text("État / panne…", maxLines = 1, softWrap = false, fontSize = 13.sp) }
+            TextButton(onClick = onQr, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp), modifier = Modifier.semantics { contentDescription = "Lire le QR code ou code-barres de cette borne" }) { QrIcon(18.dp); Text(" QR") }
             Box {
-                TextButton(onClick = { more = true }) { Text("Plus…") }
+                TextButton(onClick = { more = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)) { Text("Plus…", maxLines = 1, softWrap = false, fontSize = 13.sp) }
                 DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
                     DropdownMenuItem(text = { Text("Compléter la fiche") }, onClick = { more = false; onFiche() })
                     if (onRename != null) DropdownMenuItem(text = { Text("Renommer la borne (adresse)") }, onClick = { more = false; onRename() })
@@ -1009,8 +1196,9 @@ fun Countdown(total: Int, key: Any): Int {
 }
 
 @Composable
-fun ConfirmDialog(p: Pending, car: String, onDismiss: () -> Unit, onConfirm: (String?, String, Boolean, Double?, String) -> Unit) {
+fun ConfirmDialog(p: Pending, car: String, onDismiss: () -> Unit, onConfirm: (String?, String, Boolean, Double?, String, String) -> Unit) {
     var motif by remember { mutableStateOf("") }
+    var demarrage by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var kwText by remember { mutableStateOf("") }
     var share by remember { mutableStateOf(false) } // une nouvelle borne prend la position GPS : non partagée tant que l'utilisateur ne coche pas
@@ -1046,6 +1234,8 @@ fun ConfirmDialog(p: Pending, car: String, onDismiss: () -> Unit, onConfirm: (St
                         Text("Que s'est-il passé ? (facultatif, une touche)", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
                         MOTIFS.forEach { (code, lib) -> ChoiceRow(motif == code, lib, 13) { motif = if (motif == code) "" else code } }
                     }
+                    Text("Comment la charge a-t-elle été démarrée ? (facultatif)", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
+                    DEMARRAGES.forEach { (code, lib) -> ChoiceRow(demarrage == code, lib, 13) { demarrage = if (demarrage == code) "" else code } }
                     if (isNew) {
                         OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nom ou adresse (facultatif)") }, singleLine = true)
                         CheckRow(share, "Partager cette borne (sa position) avec les autres. À cocher seulement pour une borne publique ; laissez décoché pour une borne privée ou à domicile.", 13) { share = it }
@@ -1053,15 +1243,39 @@ fun ConfirmDialog(p: Pending, car: String, onDismiss: () -> Unit, onConfirm: (St
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(if (isNew) null else chosen, name, share, Etats.parseKw(kwText), motif) }, enabled = ready) { Text("Enregistrer") } },
+        confirmButton = { TextButton(onClick = { onConfirm(if (isNew) null else chosen, name, share, Etats.parseKw(kwText), motif, demarrage) }, enabled = ready) { Text("Enregistrer") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } }
     )
 }
 
+/** Titre de section en bandeau : sépare nettement les parties d'une longue fenêtre. */
 @Composable
-fun AboutDialog(onDismiss: () -> Unit, onListsUpdated: () -> Unit = {}) {
+fun SectionHead(text: String, top: Int = 16) {
+    Surface(color = Color(0xFFE5ECF6), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(top = top.dp, bottom = 4.dp)) {
+        Text(text, fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, color = Color(0xFF1F2937), modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp).semantics { heading() })
+    }
+}
+
+@Composable
+fun AboutDialog(onDismiss: () -> Unit, demo: Boolean = false, onDemo: (Boolean) -> Unit = {}, essai: Boolean = false, essaiCount: Int = 0, onClearEssai: () -> Unit = {}, onEssai: (Boolean) -> Unit = {}, onListsUpdated: () -> Unit = {}, exportText: () -> String = { "" }, importText: (String) -> String = { "" }) {
     val ctx = LocalContext.current
     val aScope = rememberCoroutineScope()
+    var dataMsg by remember { mutableStateOf("") }
+    val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) dataMsg = try {
+            val txt = exportText()
+            ctx.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(txt.toByteArray(Charsets.UTF_8)) }
+            "Fichier enregistré. Gardez-le (courriel, nuage, ordinateur) : vous pourrez le réimporter."
+        } catch (e: Exception) { DiagLog.add("Export : ${e.javaClass.simpleName}"); "Échec de l'enregistrement du fichier." }
+    }
+    val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) dataMsg = try {
+            val bytes = ctx.contentResolver.openInputStream(uri)!!.use { ins -> val buf = java.io.ByteArrayOutputStream(); val chunk = ByteArray(65536); var tot = 0
+                while (true) { val k = ins.read(chunk); if (k < 0) break; tot += k; if (tot > 5_000_000) break; buf.write(chunk, 0, k) }
+                if (tot > 5_000_000) ByteArray(5_000_001) else buf.toByteArray() }
+            if (bytes.size > 5_000_000) "Fichier trop gros pour être un export de l'application." else importText(String(bytes, Charsets.UTF_8))
+        } catch (e: Exception) { DiagLog.add("Import : ${e.javaClass.simpleName}"); "Fichier illisible ou qui n'est pas un export de l'application." }
+    }
     var updMsg by remember { mutableStateOf("") }
     var updBusy by remember { mutableStateOf(false) }
     var showLog by remember { mutableStateOf(false) }
@@ -1076,8 +1290,8 @@ fun AboutDialog(onDismiss: () -> Unit, onListsUpdated: () -> Unit = {}) {
             text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text(txt, fontSize = 11.sp, lineHeight = 14.sp) } },
             confirmButton = { TextButton(onClick = {
                 val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                cm.setPrimaryClip(android.content.ClipData.newPlainText("journal", txt))
-                Toast.makeText(ctx, "Journal copié", Toast.LENGTH_SHORT).show()
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("journal", DiagLog.copyText()))
+                Toast.makeText(ctx, "Journal copié (les plus récentes lignes)", Toast.LENGTH_SHORT).show()
             }) { Text("Copier") } },
             dismissButton = { Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { if (confirmClear) { DiagLog.clear(); txt = DiagLog.text(); confirmClear = false } else confirmClear = true },
@@ -1093,35 +1307,52 @@ fun AboutDialog(onDismiss: () -> Unit, onListsUpdated: () -> Unit = {}) {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Version ${BuildConfig.VERSION_NAME} · licence GPL-3.0", fontSize = 13.sp, color = Color(0xFF4B5563))
-                Text("Avant d'utiliser", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
-                Text("Cette application rassemble des relevés d'utilisateurs. Elle ne donne aucune garantie : une borne qui a chargé une fois peut refuser ensuite, et inversement. Elle ne remplace pas l'avis d'un électricien ni celui du constructeur. Ne modifiez jamais votre installation électrique sans un professionnel qualifié.", fontSize = 13.sp)
-                Text("Vos données", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
-                Text("Vos relevés (borne, résultat, date, modèle de voiture) sont partagés anonymement : ni nom, ni plaque, ni trajet. Voir la FAQ « Que deviennent mes relevés ? ».", fontSize = 13.sp)
-                Text("Sources et licences", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
-                Text("Projet indépendant, non affilié à Renault ni à Mercedes-Benz / smart. Cartes © contributeurs OpenStreetMap, fond OpenFreeMap. Anneaux violets : Bruxelles Mobilité (CC BY). Anneaux gris : liste « 230 V » de ${Te230.SOURCE}.", fontSize = 13.sp)
-                Text("Liste de bornes embarquée : © contributeurs OpenStreetMap (licence ODbL), extraite le ${DataUpdate.currentDate(ctx)}. Bornes de Flandre : données ouvertes du Departement Mobiliteit en Openbare Werken (source Eco-Movement), licence non précisée par la fiche (question posée au Département). Bornes de Bruxelles : données ouvertes de Bruxelles Mobilité (source Paradigm / Eco-Movement), licence CC BY. Bornes de Wallonie : ${Wallonie.SOURCE}, licence CC BY 4.0. Les relevés et signalements de la communauté sont des données propres à l'application.", fontSize = 13.sp)
-                Text("Mises à jour", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
+                SectionHead("Mises à jour", top = 4)
                 TextButton(enabled = !updBusy, onClick = { updBusy = true; updMsg = "Vérification…"; aScope.launch { val (ch, m) = withContext(Dispatchers.IO) { DataUpdate.update(ctx) }; updMsg = m; updBusy = false; if (ch) onListsUpdated() } }) { Text("Mettre à jour les listes de bornes maintenant") }
                 if (updMsg.isNotEmpty()) Text(updMsg, fontSize = 13.sp)
-                if (AppUpdate.isStoreInstall(AppUpdate.installer(ctx))) Text("Installée par un magasin d'applications : c'est lui qui gère les mises à jour de l'application.", fontSize = 13.sp, color = Color(0xFF4B5563))
+                if (!AppUpdate.enabled || AppUpdate.isStoreInstall(AppUpdate.installer(ctx))) Text("Installée par un magasin d'applications : c'est lui qui gère les mises à jour de l'application.", fontSize = 13.sp, color = Color(0xFF4B5563))
                 else {
                     var appUpdMsg by remember { mutableStateOf("") }
                     var appOff by remember { mutableStateOf(AppUpdate.isDisabled(ctx)) }
                     var found by remember { mutableStateOf<AppUpdate.Info?>(null) }
                     TextButton(onClick = { appUpdMsg = "Vérification…"; found = null; aScope.launch { val (i, m) = withContext(Dispatchers.IO) { AppUpdate.check(ctx, true) }; appUpdMsg = m; found = i } }) { Text("Vérifier les mises à jour de l'application") }
-                    found?.let { f -> TextButton(onClick = { if (!AppUpdate.download(ctx, f)) ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse(f.pageUrl))) else android.widget.Toast.makeText(ctx, "Téléchargement lancé. Fichier : Téléchargements > BorneNeutre-" + f.versionName + ".apk", android.widget.Toast.LENGTH_LONG).show(); found = null }) { Text("Télécharger la version ${f.versionName}") } }
+                    found?.let { f -> TextButton(onClick = { AppUpdate.request.value = f; found = null }) { Text("Télécharger la version ${f.versionName}") } }
                     if (appUpdMsg.isNotEmpty()) Text(appUpdMsg, fontSize = 13.sp)
                     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = !appOff, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = { appOff = !it; AppUpdate.disable(ctx, appOff) }), verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = !appOff, onCheckedChange = null)
                         Text("  Vérifier au lancement", fontSize = 13.sp)
                     }
                 }
-                Text("Agir", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
+                androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                SectionHead("Avant d'utiliser", top = 8)
+                Text("Cette application rassemble des relevés d'utilisateurs. Elle ne donne aucune garantie : une borne qui a chargé une fois peut refuser ensuite, et inversement. Elle ne remplace pas l'avis d'un électricien ni celui du constructeur. Ne modifiez jamais votre installation électrique sans un professionnel qualifié.", fontSize = 13.sp)
+                SectionHead("Vos données", top = 8)
+                Text("Vos relevés (borne, résultat, date, modèle de voiture) sont partagés anonymement : ni nom, ni plaque, ni trajet. Voir la FAQ « Que deviennent mes relevés ? ».", fontSize = 13.sp)
+                Text("Sauvegarde : « Exporter » crée un fichier avec vos relevés et les bornes que vous avez ajoutées (ni nom, ni plaque, ni trajet). « Importer » le relit sur ce téléphone ou un autre, sans doublon. Utile avant de désinstaller l'application ou de changer de téléphone.", fontSize = 13.sp)
+                Row {
+                    TextButton(onClick = { exportLauncher.launch("releves-bornes-smart-zoe-" + java.time.LocalDate.now() + ".json") }) { Text("Exporter mes relevés") }
+                    TextButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text("Importer") }
+                }
+                if (dataMsg.isNotEmpty()) Text(dataMsg, fontSize = 13.sp)
+                Text("Mode démo (pour captures d'écran) : remplace votre position par un point fictif au centre de Bruxelles, masque vos bornes privées, n'enregistre et n'envoie rien. Remis à zéro quand l'application est fermée complètement. Le choix de voiture et les filtres restent enregistrés : vérifiez votre voiture après la démo.", fontSize = 13.sp)
+                TextButton(onClick = { onDemo(!demo) }) { Text(if (demo) "Quitter le mode démo" else "Activer le mode démo") }
+                SectionHead("Sources et licences", top = 8)
+                Text("Projet indépendant, non affilié à Renault ni à Mercedes-Benz / smart. Cartes © contributeurs OpenStreetMap, fond OpenFreeMap. Anneaux violets : Bruxelles Mobilité (CC BY). Anneaux gris : liste « 230 V » de ${Te230.SOURCE}.", fontSize = 13.sp)
+                Text("Liste de bornes embarquée : © contributeurs OpenStreetMap (licence ODbL), extraite le ${DataUpdate.currentDate(ctx)}${DataUpdate.ageLabel(ctx)}. Bornes de Flandre : données ouvertes du Departement Mobiliteit en Openbare Werken (source Eco-Movement), licence non précisée par la fiche (question posée au Département). Bornes de Bruxelles : données ouvertes de Bruxelles Mobilité (source Paradigm / Eco-Movement), licence CC BY. Bornes de Wallonie : ${Wallonie.SOURCE}, licence CC BY 4.0. Les relevés et signalements de la communauté sont des données propres à l'application.", fontSize = 13.sp)
+                SectionHead("Agir", top = 8)
                 TextButton(onClick = { showRaccordA = true }) { Text("Préparer ma demande au gestionnaire de réseau") }
-                Text("Liens et diagnostic", style = MaterialTheme.typography.titleSmall, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 8.dp))
+                SectionHead("Liens et diagnostic", top = 8)
                 TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe/blob/main/DATA-LICENCE.md"))) }) { Text("Licences des données") }
                 TextButton(onClick = { ctx.safeStart(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/stabilo3k/bornes-smart-zoe"))) }) { Text("Code source et signalement d'un problème") }
                 TextButton(onClick = { showLog = true }) { Text("Journal de diagnostic") }
+                androidx.compose.material3.HorizontalDivider(Modifier.padding(top = 8.dp))
+                Text("Mode essai, réservé aux bêta-testeurs : pour tester l'application sans rien envoyer. Vos relevés, états et stickers saisis dans ce mode restent sur ce téléphone, ne sont JAMAIS envoyés (même après avoir quitté le mode) et peuvent fausser vos propres classements. À n'utiliser que si on vous l'a demandé ; il reste actif tant que vous ne le désactivez pas.", fontSize = 12.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Color(0xFF6B7280))
+                TextButton(onClick = { onEssai(!essai) }) { Text(if (essai) "Quitter le mode essai" else "Activer le mode essai", fontStyle = androidx.compose.ui.text.font.FontStyle.Italic) }
+                if (essaiCount > 0) {
+                    var confirmEssai by remember { mutableStateOf(false) }
+                    TextButton(onClick = { if (confirmEssai) { onClearEssai(); confirmEssai = false } else confirmEssai = true }, colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFB42318))) {
+                        Text(if (confirmEssai) "Toucher encore : effacer ($essaiCount saisies d'essai)" else "Effacer mes saisies d'essai ($essaiCount)", fontStyle = androidx.compose.ui.text.font.FontStyle.Italic) }
+                }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Fermer") } }
@@ -1152,6 +1383,9 @@ fun FaqDialog(onDismiss: () -> Unit) {
     var open by remember { mutableStateOf<String?>(null) }
     var showRaccord by remember { mutableStateOf(false) }
     if (showRaccord) RaccordDialog { showRaccord = false }
+    val faqScroll = rememberScrollState()
+    val faqScope = rememberCoroutineScope()
+    val secY = remember { mutableStateMapOf<String, Int>() }
     var zoom by remember { mutableStateOf<Pair<androidx.compose.ui.graphics.ImageBitmap, String>?>(null) }
     zoom?.let { z -> ImageZoomDialog(z.first, z.second) { zoom = null } }
     AlertDialog(
@@ -1161,12 +1395,19 @@ fun FaqDialog(onDismiss: () -> Unit) {
             OutlinedButton(onClick = { showRaccord = true }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) { Text("Agir : préparer ma demande au gestionnaire de réseau", fontSize = 13.sp) }
         } },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.verticalScroll(faqScroll), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (items.isEmpty()) Text("FAQ indisponible.")
                 Text("Bornes Smart et Zoé · version ${BuildConfig.VERSION_NAME}", fontSize = 12.sp, color = Color(0xFF4B5563))
+                val secs = items.map { it.sec }.filter { it.isNotBlank() }.distinct()
+                if (secs.size > 1) Column(Modifier.padding(vertical = 2.dp)) {
+                    Text("Sommaire (toucher pour aller à la section)", fontSize = 12.sp, color = Color(0xFF4B5563))
+                    secs.forEach { sec ->
+                        Text("› " + sec, fontSize = 14.sp, color = Color(0xFF1B4DB3), modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Aller à la section", role = androidx.compose.ui.semantics.Role.Button) { secY[sec]?.let { y -> faqScope.launch { faqScroll.animateScrollTo(y) } } }.padding(vertical = 8.dp))
+                    }
+                }
                 var lastSec = ""
                 items.forEach { it ->
-                    if (it.sec.isNotBlank() && it.sec != lastSec) { lastSec = it.sec; Text(it.sec, style = MaterialTheme.typography.titleMedium, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 10.dp)) }
+                    if (it.sec.isNotBlank() && it.sec != lastSec) { lastSec = it.sec; Text(it.sec, style = MaterialTheme.typography.titleMedium, color = Color(0xFF1F2937), modifier = Modifier.padding(top = 10.dp).onGloballyPositioned { c -> secY[it.sec] = c.positionInParent().y.toInt() }) }
                     val isOpen = open == it.id
                     Card(Modifier.fillMaxWidth().clickable { open = if (isOpen) null else it.id }) {
                         Column(Modifier.padding(10.dp)) {
@@ -1289,6 +1530,22 @@ fun MapContainer(
                     st.addImage("ring-e", ringBitmap(dashed = false, color = android.graphics.Color.parseColor("#7e22ce"), double = true))
                     st.addImage("ring-t", ringBitmap(dashed = true, color = android.graphics.Color.parseColor("#4b5563")))
                     st.addImage("ring-v", hatchedDiscBitmap(android.graphics.Color.parseColor("#7e22ce")))
+                    st.addImage("plus-new", plusBitmap())
+                    st.addImage("pv-1", pastilleDotBitmap(false)); st.addImage("pv-2", pastilleDotBitmap(true))
+                    // Autocollant vert/bleu vu : petite pastille pleine en bas à gauche du point (1 = vue 1 fois ; 2 = confirmée par 2 téléphones, avec un centre clair). Pas de 6e anneau.
+                    st.addLayer(
+                        org.maplibre.android.style.layers.SymbolLayer("st-pv", "stations").withFilter(Expression.gt(Expression.get("pv"), 0)).withProperties(
+                            PropertyFactory.iconImage(Expression.concat(Expression.literal("pv-"), Expression.toString(Expression.get("pv")))), PropertyFactory.iconOffset(arrayOf(-11f, 11f)),
+                            PropertyFactory.iconAllowOverlap(true), PropertyFactory.iconIgnorePlacement(true)
+                        ).also { it.minZoom = 11f }
+                    )
+                    // Repère « Ajoutée » (45 jours) : petit « + » en forme, pas seulement en couleur ; visible à partir du zoom 11.
+                    st.addLayer(
+                        org.maplibre.android.style.layers.SymbolLayer("st-new", "stations").withFilter(Expression.eq(Expression.get("new"), true)).withProperties(
+                            PropertyFactory.iconImage("plus-new"), PropertyFactory.iconOffset(arrayOf(11f, -11f)),
+                            PropertyFactory.iconAllowOverlap(true), PropertyFactory.iconIgnorePlacement(true)
+                        ).also { it.minZoom = 11f }
+                    )
                     st.addLayer(
                         org.maplibre.android.style.layers.SymbolLayer("st-ring", "stations").withFilter(Expression.all(Expression.neq(Expression.get("ring"), ""), Expression.neq(Expression.get("ring"), "e"), Expression.neq(Expression.get("ring"), "t"), Expression.neq(Expression.get("ring"), "v"))).withProperties(
                             PropertyFactory.iconImage(Expression.concat(Expression.literal("ring-"), Expression.get("ring"))),
@@ -1370,6 +1627,27 @@ fun powerBitmap(tier: Int): android.graphics.Bitmap {
     c.drawRoundRect(android.graphics.RectF(1f, 1f, w - 1f, h - 1f), 14f, 14f, bg)
     val tp = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE; textSize = 26f; isFakeBoldText = true; textAlign = android.graphics.Paint.Align.CENTER }
     c.drawText("⚡$label", w / 2f, h / 2f + 9f, tp)
+    return bmp
+}
+
+fun pastilleDotBitmap(confirmed: Boolean): android.graphics.Bitmap {
+    val size = 32
+    val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(bmp)
+    val f = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+    f.color = android.graphics.Color.WHITE; c.drawCircle(size / 2f, size / 2f, 13f, f)
+    f.color = android.graphics.Color.parseColor("#0f5132"); c.drawCircle(size / 2f, size / 2f, 10f, f)
+    if (confirmed) { f.color = android.graphics.Color.WHITE; c.drawCircle(size / 2f, size / 2f, 4.5f, f) }
+    return bmp
+}
+
+fun plusBitmap(): android.graphics.Bitmap {
+    val size = 36
+    val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(bmp)
+    val halo = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { style = android.graphics.Paint.Style.STROKE; strokeWidth = 11f; color = android.graphics.Color.WHITE; strokeCap = android.graphics.Paint.Cap.ROUND }
+    val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { style = android.graphics.Paint.Style.STROKE; strokeWidth = 6f; color = android.graphics.Color.parseColor("#0f5132"); strokeCap = android.graphics.Paint.Cap.ROUND }
+    for (q in listOf(halo, p)) { c.drawLine(size / 2f, 8f, size / 2f, size - 8f, q); c.drawLine(8f, size / 2f, size - 8f, size / 2f, q) }
     return bmp
 }
 

@@ -44,7 +44,7 @@ object Sync {
                     .put("station_name", s.name.take(120)).put("lat", s.lat).put("lon", s.lon)
                     .put("current", if (s.current in listOf("AC", "DC")) s.current else "?")
                     .put("result", r.result.name).put("car", car).put("ts", r.ts)
-                    .also { if (r.remote) it.put("remote", true); if (r.kw != null) it.put("kw", r.kw); if (withV12 && r.motif.isNotBlank()) it.put("motif", r.motif) }
+                    .also { if (r.remote) it.put("remote", true); if (r.kw != null) it.put("kw", r.kw); if (withV12 && r.motif.isNotBlank()) it.put("motif", r.motif); if (withV12 && r.demarrage.isNotBlank()) it.put("demarrage", r.demarrage) }
             )
         }
         return out
@@ -64,7 +64,7 @@ object Sync {
             if (sid !in knownStationIds && sid !in st)
                 st[sid] = Station(sid, o.optString("station_name", "Borne"), "", o.getDouble("lat"), o.getDouble("lon"), o.optString("current", "?"), "", "commu")
             val res = runCatching { Result.valueOf(o.getString("result")) }.getOrNull() ?: continue // résultat inconnu : ligne ignorée
-            rl.add(Releve(cid, sid, o.optString("ts", ""), res, null, "", false, car, o.optBoolean("remote", false),
+            rl.add(Releve(cid, sid, o.optString("ts", ""), res, "", false, car, o.optBoolean("remote", false),
                 if (o.has("kw") && !o.isNull("kw")) o.optDouble("kw").takeIf { !it.isNaN() } else null,
                 o.optString("motif", "").takeIf { c -> motifLabel(c) != null } ?: ""))
         }
@@ -77,7 +77,7 @@ object Sync {
     internal const val REJECTED = 400
     internal fun classify(code: Int, err: String?): Int = when {
         code in 200..299 -> code
-        code in 400..499 && err != null && Regex("\"code\"\\s*:\\s*\"23").containsMatchIn(err) -> REJECTED
+        code in 400..499 && err != null && Regex("\"code\"\\s*:\\s*\"2[23]").containsMatchIn(err) -> REJECTED // 22xxx = donnée mal formée (date, type), 23xxx = contrainte
         else -> -1
     }
 
@@ -102,7 +102,7 @@ object Sync {
         if (now - v12At < 6L * 3600 * 1000) return v12Ok
         v12Ok = try { call("releves?select=motif&limit=1", "GET", null).body != null && call("fiches?select=pastille&limit=1", "GET", null).body != null } catch (_: Exception) { return v12Ok }
         v12At = now
-        DiagLog.add("serveur 1.2 (motif, pastille) : " + if (v12Ok) "présent" else "absent, champs gardés sur le téléphone")
+        if (!v12Ok) DiagLog.add("serveur 1.2 (motif, pastille) : absent, champs gardés sur le téléphone")
         return v12Ok
     }
 
@@ -251,7 +251,7 @@ object Sync {
         if (now - pastAt < 6L * 3600 * 1000) return pastOk
         pastOk = try { call("pastilles?select=client_id&limit=1", "GET", null).body != null } catch (_: Exception) { return pastOk }
         pastAt = now
-        DiagLog.add("serveur pastilles : " + if (pastOk) "présent" else "absent, observations gardées sur le téléphone")
+        if (!pastOk) DiagLog.add("serveur pastilles : absent, observations gardées sur le téléphone")
         return pastOk
     }
 
@@ -302,6 +302,12 @@ object Sync {
         DiagLog.add("pastilles : ${e.javaClass.simpleName} ${(e.message ?: "").take(60)}")
         null
     }
+
+    /** Vue « pastilles_par_borne » (SQL 1.3.2) : téléphones distincts par borne et par pastille. null si la vue manque ou si le réseau échoue. */
+    fun fetchPastillePhones(): String? = try {
+        val r = call("pastilles_par_borne?select=station_id,code,n_telephones&limit=3000", "GET", null)
+        if (r.body == null) { DiagLog.add("lecture pastilles_par_borne : HTTP ${r.code}"); null } else r.body
+    } catch (e: Exception) { DiagLog.add("pastilles_par_borne : ${e.javaClass.simpleName}"); null }
 
     // ---- Fiches de borne (table « fiches », SQL 1.0.4) : nombre de bornes, prises par borne, puissance déclarée. ----
 

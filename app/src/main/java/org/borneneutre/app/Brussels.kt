@@ -28,6 +28,7 @@ object Brussels {
             }
             if (ph.isNotEmpty()) tags.put("phases", ph)
             tags.put("source", SOURCE)
+            r.optString("d", "").takeIf { it.length >= 10 }?.let { tags.put(StationInfo.ADDED_KEY, it) }
             val op = r.optString("o", "")
             out.add(Station("bx-" + r.optString("i", i.toString()), op.ifBlank { "Borne (Bruxelles)" }, op,
                 r.optDouble("la"), r.optDouble("lo"), if (Overpass.isFastOperator(op) || (dc && !ac)) "DC" else if (ac) "AC" else "?", "", "osm", tags.toString()))

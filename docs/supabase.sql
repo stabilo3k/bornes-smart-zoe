@@ -1,3 +1,4 @@
+-- NOTE 19/11/2026 : sur le serveur réel, la contrainte de la colonne car est « releves_car_check » : CHECK (char_length(car) >= 2 AND char_length(car) <= 40) (vérifié dans le SQL Editor), et non la liste de 4 modèles ci-dessous. Ce fichier est l'état initial, pas l'état actuel : les MAJ 1.0.3 à 1.2 ne sont pas toutes reproduites ici.
 -- BorneNeutre : relevés partagés. À coller une fois dans Supabase > SQL Editor > Run.
 create table if not exists public.releves (
   id uuid primary key default gen_random_uuid(),

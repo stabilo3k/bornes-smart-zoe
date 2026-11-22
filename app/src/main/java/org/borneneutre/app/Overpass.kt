@@ -8,10 +8,10 @@ import java.net.URLEncoder
 /** Bornes de recharge OpenStreetMap autour de la position GPS (données © contributeurs OpenStreetMap, ODbL). */
 object Overpass {
     private val ENDPOINTS = listOf(
-        "https://lz4.overpass-api.de/api/interpreter",
+        // Journal de l'application, 17-22/11 : 2 réussites seulement (kumi, dresel) ; private.coffee jamais ; lz4 et overpass-api : 502 ou silence. dresel d'abord.
+        "https://ovp.dresel.systems/api/interpreter",
         "https://overpass-api.de/api/interpreter",
-        "https://overpass.private.coffee/api/interpreter",
-        "https://overpass.kumi.systems/api/interpreter"
+        "https://lz4.overpass-api.de/api/interpreter"
     )
 
     /** Dernière cause d'échec (code HTTP ou type d'erreur), affichée à l'utilisateur pour le diagnostic. */
@@ -31,6 +31,7 @@ object Overpass {
             val lon = if (e.has("lon")) e.getDouble("lon") else c?.optDouble("lon", Double.NaN) ?: Double.NaN
             if (lat.isNaN() || lon.isNaN()) continue
             val t = e.optJSONObject("tags") ?: JSONObject()
+            e.optString("d", "").takeIf { it.length >= 10 }?.let { t.put(StationInfo.ADDED_KEY, it) } // date d'entrée dans NOTRE liste (calculée par le workflow, niveau de l'élément)
             val operator = t.optString("operator", t.optString("brand", ""))
             val name = t.optString("name", "").ifBlank {
                 listOf(operator, t.optString("addr:street", ""), t.optString("addr:housenumber", "")).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Borne OpenStreetMap" }
@@ -85,12 +86,13 @@ object Overpass {
                 try { while (latch.count > 0L && System.currentTimeMillis() - start < i * STAGGER_MS && failures.get() < i) Thread.sleep(100) }
                 catch (_: InterruptedException) { return@execute }
                 if (latch.count == 0L) return@execute
+                if (paused(host)) { errs.add("$host : en pause"); failures.incrementAndGet(); DiagLog.add("OSM autour ($radiusM m) $host : en pause (trop de requêtes)"); return@execute }
                 val t0 = System.currentTimeMillis()
                 try {
                     val c = URL(ep).openConnection() as HttpURLConnection
                     conns.add(c); answered.add("start:$host")
                     c.requestMethod = "POST"; c.connectTimeout = 5000; c.readTimeout = 15000; c.doOutput = true
-                    c.setRequestProperty("User-Agent", "BorneNeutre/1.3 (Android; +https://github.com/stabilo3k/bornes-smart-zoe)")
+                    c.setRequestProperty("User-Agent", UA)
                     c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                     c.setRequestProperty("Accept", "application/json")
                     c.outputStream.use { it.write(body.toByteArray()) }
@@ -100,7 +102,7 @@ object Overpass {
                         val r = parse(c.inputStream.bufferedReader().readText())
                         if (result.compareAndSet(null, r)) { DiagLog.add("OSM autour ($radiusM m) $host : OK ${r.size} borne(s), ${System.currentTimeMillis() - t0} ms"); latch.countDown() }
                     } else {
-                        errs.add("$host : HTTP $code"); failures.incrementAndGet()
+                        pauseIfBusy(host, code); errs.add("$host : HTTP $code"); failures.incrementAndGet()
                         DiagLog.add("OSM autour ($radiusM m) $host : HTTP $code, ${System.currentTimeMillis() - t0} ms")
                     }
                 } catch (e: Exception) {
@@ -128,6 +130,12 @@ object Overpass {
         return null
     }
 
+    /** Serveur mis en pause 30 s après un HTTP 429 (trop de requêtes) ou 406 : on ne le relance pas aussitôt. */
+    private val pausedUntil = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private const val PAUSE_MS = 30_000L
+    private fun paused(host: String) = (pausedUntil[host] ?: 0L) > System.currentTimeMillis()
+    private fun pauseIfBusy(host: String, code: Int) { if (code == 429 || code == 406) pausedUntil[host] = System.currentTimeMillis() + PAUSE_MS }
+    private const val UA = "BorneNeutre/1.3 (Android; +https://github.com/stabilo3k/bornes-smart-zoe)"
     private const val STAGGER_MS = 3000L
     private const val BUDGET_MS = 10_000L
 
@@ -138,14 +146,15 @@ object Overpass {
         for (ep in ENDPOINTS) {
             val t0 = System.currentTimeMillis()
             val host = ep.substringAfter("//").substringBefore("/")
+            if (paused(host)) { DiagLog.add("OSM zone $host : en pause"); continue }
             try {
                 val c = URL(ep).openConnection() as HttpURLConnection
                 c.requestMethod = "POST"; c.connectTimeout = 8000; c.readTimeout = 70000; c.doOutput = true
-                c.setRequestProperty("User-Agent", "BorneNeutre/1.2 (Android; +https://github.com/stabilo3k/bornes-smart-zoe)"); c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                c.setRequestProperty("User-Agent", UA); c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 c.outputStream.use { it.write(body.toByteArray()) }
                 val code = c.responseCode
                 if (code == 200) { val t = c.inputStream.bufferedReader().readText(); DiagLog.add("OSM zone $host : OK ${t.length / 1024} Ko, ${System.currentTimeMillis() - t0} ms"); return t }
-                DiagLog.add("OSM zone $host : HTTP $code, ${System.currentTimeMillis() - t0} ms")
+                pauseIfBusy(host, code); DiagLog.add("OSM zone $host : HTTP $code, ${System.currentTimeMillis() - t0} ms")
             } catch (e: Exception) {
                 DiagLog.add("OSM zone $host : ${e.javaClass.simpleName} ${(e.message ?: "").take(60)}, ${System.currentTimeMillis() - t0} ms")
             }
@@ -153,38 +162,9 @@ object Overpass {
         return null
     }
 
-    /** Bornes de `found` qui ne sont pas à moins de `maxM` mètres d'une borne de `known` (doublons écartés ; index en grille pour les longues listes). */
-    fun dedupe(known: List<Station>, found: List<Station>, maxM: Double = 25.0): List<Station> {
-        val step = 0.0006
-        val grid = HashMap<Long, MutableList<Station>>()
-        fun cell(lat: Double, lon: Double) = Math.floor(lat / step).toLong() to Math.floor(lon / step).toLong()
-        fun key(y: Long, x: Long) = y * 1_000_003L + x
-        known.forEach { val (y, x) = cell(it.lat, it.lon); grid.getOrPut(key(y, x)) { ArrayList() }.add(it) }
-        return found.filter { f ->
-            val (cy, cx) = cell(f.lat, f.lon)
-            !(-1L..1L).any { dy -> (-1L..1L).any { dx -> grid[key(cy + dy, cx + dx)]?.any { Geo.distanceM(f.lat, f.lon, it.lat, it.lon) < maxM } == true } }
-        }
-    }
-
-    /** Pour chaque borne de `found` à moins de `maxM` m d'une borne de `known` : identifiant de la borne connue la plus proche (relevés fusionnés sur une seule fiche). */
-    fun aliasOf(known: List<Station>, found: List<Station>, maxM: Double = 40.0): Map<String, String> {
-        val out = HashMap<String, String>()
-        for (f in found) {
-            var best: Station? = null
-            var bd = maxM
-            for (k in known) {
-                if (k.id == f.id) continue
-                val d = Geo.distanceM(f.lat, f.lon, k.lat, k.lon)
-                if (d < bd) { bd = d; best = k }
-            }
-            if (best != null) out[f.id] = best.id
-        }
-        return out
-    }
-
-    /** Bornes candidates triées par distance ; les bornes OSM à moins de 25 m d'une borne déjà connue sont écartées (doublons). */
+    /** Bornes candidates triées par distance ; les doublons sont écartés par la règle graduée de Fusion. */
     fun candidates(lat: Double, lon: Double, known: List<Station>, found: List<Station>, maxM: Double): List<Pair<Station, Double>> {
-        val all = known + dedupe(known, found)
+        val all = known + Fusion.dedupe(known, found)
         return all.filter { it.current != "DC" }
             .map { it to Geo.distanceM(lat, lon, it.lat, it.lon) }
             .filter { it.second <= maxM }

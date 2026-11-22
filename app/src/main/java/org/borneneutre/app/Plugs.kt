@@ -77,12 +77,14 @@ private fun DrawScope.plugBody(p: Plug, color: Color) {
 /** Puissance, prises et source sur une seule ligne (retour à la ligne seulement si l'écran est étroit). */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun PlugRow(lead: String, plugs: List<Plug>, source: String?) {
+fun PlugRow(lead: String, plugs: List<Plug>, source: String?, count: Int = 1) {
+    val n = count.coerceIn(1, 8)
     androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(lead, fontSize = 13.sp, modifier = Modifier.align(Alignment.CenterVertically))
         plugs.forEach { p ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Canvas(Modifier.size(24.dp)) { plugBody(p, Color(0xFF1F6F43)) }
+                // une icône par point de charge connu (pour visualiser le nombre de prises) ; l'étiquette n'est écrite qu'une fois
+                repeat(n) { Canvas(Modifier.size(24.dp)) { plugBody(p, Color(0xFF1F6F43)) } }
                 Text(" ${p.label}", fontSize = 12.sp)
             }
         }

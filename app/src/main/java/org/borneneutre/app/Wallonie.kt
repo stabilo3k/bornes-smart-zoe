@@ -22,6 +22,7 @@ object Wallonie {
             if (r.optInt("s", 0) == 1) tags.put("access", "semipublic")
             r.optString("a", "").takeIf { it.isNotBlank() }?.let { tags.put("addr:full", it) }
             tags.put("source", src)
+            r.optString("d", "").takeIf { it.length >= 10 }?.let { tags.put(StationInfo.ADDED_KEY, it) }
             val op = r.optString("o", "")
             val dc = r.optString("c", "AC") == "DC" || Overpass.isFastOperator(op)
             out.add(Station("wal-" + r.optString("i", i.toString()), (if (op.isNotBlank()) op else "Borne (Wallonie)") + (r.optString("a", "").takeIf { it.isNotBlank() }?.let { " – $it" } ?: ""), op,

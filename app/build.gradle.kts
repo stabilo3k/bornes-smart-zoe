@@ -7,14 +7,22 @@ plugins {
 }
 android {
     namespace = "org.borneneutre.app"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "org.borneneutre.app"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 71
-        versionName = "1.3.1"
+        targetSdk = 36
+        versionCode = 97
+        versionName = "1.3.11"
         ndk { abiFilters += listOf("arm64-v8a") }
+    }
+    // Deux variantes, même versionCode : « fdroid » (aucune vérification de mise à jour ; F-Droid s'en charge) et « github » (vérification de data/version.json).
+    flavorDimensions += "dist"
+    productFlavors {
+        create("fdroid") { dimension = "dist"; buildConfigField("boolean", "UPDATE_CHECK", "false"); buildConfigField("String", "VARIANTE", "\"variante-fdroid\"") }
+        // « play » : même code que fdroid (pas de vérification de mise à jour, pas de permission d'installation) ; sert à produire le bundle pour Google Play, plus tard.
+        create("play") { dimension = "dist"; buildConfigField("boolean", "UPDATE_CHECK", "false"); buildConfigField("String", "VARIANTE", "\"variante-play\"") }
+        create("github") { dimension = "dist"; buildConfigField("boolean", "UPDATE_CHECK", "true"); buildConfigField("String", "VARIANTE", "\"variante-github\"") }
     }
     // Pas de bloc de métadonnées de dépendances dans l'APK (exigé par F-Droid : reproductibilité et transparence).
     dependenciesInfo { includeInApk = false; includeInBundle = false }
@@ -51,6 +59,12 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("org.maplibre.gl:android-sdk:13.7.1")
+    // Lecteur de QR des bornes : CameraX et ZXing (Apache 2.0), lecture sur le téléphone, aucune image conservée
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+    implementation("com.google.zxing:core:3.5.3")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }

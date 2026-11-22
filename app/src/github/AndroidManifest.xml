@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Variante GitHub uniquement : permet d'ouvrir l'installateur d'Android sur la mise à jour téléchargée (Android demande toujours confirmation,
+     et n'accepte la mise à jour que si elle est signée par la même clé). La variante F-Droid n'a pas cette permission : F-Droid gère les mises à jour. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+</manifest>

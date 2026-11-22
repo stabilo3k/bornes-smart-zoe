@@ -13,7 +13,7 @@ class AppTest {
     ]}"""
 
     private fun st(id: String, lat: Double = 50.0, lon: Double = 4.0, cur: String = "AC") = Station(id, id, "", lat, lon, cur, "", "x")
-    private fun r(sid: String, res: Result, ts: String = "2026-11-01") = Releve("r$sid$res$ts", sid, ts, res, null, "", false, DEFAULT_CAR)
+    private fun r(sid: String, res: Result, ts: String = "2026-11-01") = Releve("r$sid$res$ts", sid, ts, res, "", false, DEFAULT_CAR)
 
     @Test fun overpassParsesNodesAndCenters() {
         val l = Overpass.parse(sample)
@@ -73,9 +73,12 @@ class AppTest {
 
     @Test fun seedsAreConsistent() {
         val sj = JSONArray(File("src/main/assets/stations.json").readText())
-        val ids = (0 until sj.length()).map { sj.getJSONObject(it).getString("id") }.toSet()
+        val osm = org.json.JSONObject(File("src/main/assets/bornes-be-osm.json").readText()).getJSONArray("elements")
+        val ids = (0 until sj.length()).map { sj.getJSONObject(it).getString("id") }.toSet() +
+            (0 until osm.length()).map { "osm-node-" + osm.getJSONObject(it).getLong("id") }.toSet()
         val rj = JSONArray(File("src/main/assets/releves.json").readText())
-        assertEquals(12, rj.length())
+        assertEquals(13, rj.length())
+        assertFalse("aucun releve embarque ne porte otherCar", File("src/main/assets/releves.json").readText().contains("otherCar"))
         for (i in 0 until rj.length()) {
             val o = rj.getJSONObject(i)
             assertTrue(o.getString("stationId"), o.getString("stationId") in ids)
@@ -115,13 +118,13 @@ class AppTest {
 
     @Test fun refusWeighsFullWithoutWitness() {
         val s = mapOf("a" to st("a"))
-        val e = Estimation.evidenceFrom(listOf(Releve("1", "a", "2026-11-01", Result.REFUS, null, "", false, DEFAULT_CAR)), s)
+        val e = Estimation.evidenceFrom(listOf(Releve("1", "a", "2026-11-01", Result.REFUS, "", false, DEFAULT_CAR)), s)
         assertEquals(1.0, e[0].weight, 1e-9)
     }
 
     @Test fun estimateFollowsNeighbours() {
         val s = mapOf("a" to st("a", 50.8966, 4.3211))
-        val ok = Estimation.evidenceFrom(listOf(Releve("1", "a", "2026-11-01", Result.OK, null, "", false, DEFAULT_CAR)), s)
+        val ok = Estimation.evidenceFrom(listOf(Releve("1", "a", "2026-11-01", Result.OK, "", false, DEFAULT_CAR)), s)
         assertTrue(Estimation.estimate(50.8968, 4.3212, ok).p > 0.65)
     }
 
@@ -134,7 +137,7 @@ class AppTest {
 
     @Test fun syncRowsHoldNoPersonalData() {
         val s = mapOf("a" to st("a", 50.9, 4.3))
-        val rows = Sync.toRows(listOf(r("a", Result.OK), Releve("t", "a", "2026-11-01", Result.OK, null, "", false, "Tesla")), s, "device-123456", emptySet())
+        val rows = Sync.toRows(listOf(r("a", Result.OK), Releve("t", "a", "2026-11-01", Result.OK, "", false, "Tesla")), s, "device-123456", emptySet())
         assertEquals(1, rows.length())
         val o = rows.getJSONObject(0)
         assertEquals(setOf("client_id", "device", "station_id", "station_name", "lat", "lon", "current", "result", "car", "ts"), o.keys().asSequence().toSet())
@@ -188,7 +191,7 @@ class AppTest {
 
     @Test fun remoteFlagSentOnlyWhenTrue() {
         val st = Station("s1", "Lidl", "", 50.9, 4.3, "AC", "", "osm")
-        val near = Releve("a1", "s1", "2026-11-16", Result.OK, null, "", false, DEFAULT_CAR)
+        val near = Releve("a1", "s1", "2026-11-16", Result.OK, "", false, DEFAULT_CAR)
         val far = near.copy(id = "a2", remote = true)
         val rows = Sync.toRows(listOf(near, far), mapOf("s1" to st), "dev", emptySet())
         assertFalse(rows.getJSONObject(0).has("remote"))
@@ -202,11 +205,11 @@ class AppTest {
         assertTrue(Essai400.BORNES.size in 70..90)
         assertTrue(Essai400.near(b.lat + 0.0001, b.lon) != null) // ≈ 11 m
         assertTrue(Essai400.near(b.lat + 0.002, b.lon) == null) // ≈ 220 m
-        fun r(res: Result, other: Boolean?) = Releve("x", "s", "2026-11-19", res, other, "", false)
+        fun r(res: Result) = Releve("x", "s", "2026-11-19", res, "", false)
         assertTrue(Essai400.aEssayer(b.lat, b.lon, emptyList()))
-        assertTrue(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.REFUS, true)))) // refus avec autre voiture : à refaire
-        assertFalse(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.OK, null))))
-        assertFalse(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.REFUS, false))))
+        assertTrue(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.OK)).take(0))) // aucun relevé : à essayer
+        assertFalse(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.OK))))
+        assertFalse(Essai400.aEssayer(b.lat, b.lon, listOf(r(Result.REFUS))))
         assertFalse(Essai400.aEssayer(50.0, 4.0, emptyList()))
     }
 
@@ -224,7 +227,7 @@ class AppTest {
     @Test
     fun otherModelFlag() {
         val st = Station("s1", "n", "o", 50.9, 4.3, "AC", "", "osm")
-        val rel = Releve("1", "s1", "2026-11-01", Result.OK, null, "", false, "Renault Zoé")
+        val rel = Releve("1", "s1", "2026-11-01", Result.OK, "", false, "Renault Zoé")
         fun other(car: String?): Boolean {
             val f = org.json.JSONObject(stationsGeoJson(listOf(st), listOf(rel), emptyList(), emptyMap(), emptyList(), car)).getJSONArray("features").getJSONObject(0)
             return f.getJSONObject("properties").getBoolean("other")

@@ -1,0 +1,36 @@
+name: verif-source
+# Garde-fou : le code source publié (app/) doit correspondre à la version annoncée par data/version.json.
+# Échoue si le versionCode ou le versionName diffèrent, ou si un fichier de relevés contient un champ interdit.
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', 'data/version.json']
+  schedule:
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verif:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source publiée = version annoncée
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          g = open('app/build.gradle.kts', encoding='utf-8').read()
+          code = int(re.search(r'versionCode\s*=\s*(\d+)', g).group(1))
+          name = re.search(r'versionName\s*=\s*"([^"]+)"', g).group(1)
+          v = json.load(open('data/version.json', encoding='utf-8'))
+          ok = True
+          if code != v['versionCode']:
+              print(f"ERREUR : app/build.gradle.kts versionCode {code} != data/version.json {v['versionCode']}"); ok = False
+          if name != v['versionName']:
+              print(f"ERREUR : app/build.gradle.kts versionName {name} != data/version.json {v['versionName']}"); ok = False
+          rel = json.load(open('app/src/main/assets/releves.json', encoding='utf-8'))
+          if any('otherCar' in r for r in rel):
+              print("ERREUR : releves.json contient le champ interdit otherCar"); ok = False
+          print(f"source {name} (code {code}), {len(rel)} relevés embarqués")
+          sys.exit(0 if ok else 1)
+          PY

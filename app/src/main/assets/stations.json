@@ -52,7 +52,7 @@
  {
   "id": "vanermengem-jette",
   "name": "Avenue Émile Van Ermengem, Jette",
-  "operator": "charge.brussels (à confirmer)",
+  "operator": "EnergyVision",
   "lat": 50.8926628,
   "lon": 4.3273733,
   "current": "AC",
@@ -96,7 +96,7 @@
   "lat": 50.6901414,
   "lon": 4.0336843,
   "current": "AC",
-  "note": "2 prises 11 kW. À essayer",
+  "note": "2 prises ; 11 kW selon une source, 22 kW selon le SPW : à confirmer. À essayer",
   "kind": "candidat"
  },
  {
@@ -528,5 +528,15 @@
   "current": "AC",
   "note": "22 kW, près de la gare ; à essayer",
   "kind": "candidat"
+ },
+ {
+  "id": "osm-node-8880512935",
+  "name": "Avenue Joseph De Heyn, Jette (BRU-LP0135)",
+  "operator": "Total Energy",
+  "lat": 50.8927751,
+  "lon": 4.321645,
+  "current": "AC",
+  "note": "Borne charge.brussels, 2 prises Type 2 ; autocollant vert vu le 19/11",
+  "kind": "releve"
  }
 ]

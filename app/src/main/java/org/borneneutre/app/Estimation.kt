@@ -67,9 +67,9 @@ object Estimation {
         return 2 * r * asin(min(1.0, sqrt(a)))
     }
 
-    /** Un refus pèse autant qu'un succès (le partage de puissance n'est pas retenu comme cause : décision de P.F.). */
+    /** Un refus pèse autant qu'un succès (le partage de puissance n'est pas retenu comme cause : décision du projet). */
     fun evidenceFrom(releves: List<Releve>, stations: Map<String, Station>): List<Evidence> =
-        releves.mapNotNull { r ->
+        releves.filterNot { it.horsVerdict() }.mapNotNull { r ->
             val s = stations[r.stationId] ?: return@mapNotNull null
             val (score, w) = when (r.result) {
                 Result.OK -> 1.0 to 1.0

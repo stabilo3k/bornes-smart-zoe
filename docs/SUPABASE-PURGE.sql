@@ -1,21 +1,18 @@
--- Conservation des données (annoncée dans la FAQ de l'application) :
---   états de borne : 90 jours (l'application ne lit que les 14 derniers jours)
---   identifiant aléatoire du téléphone (colonne device) : effacé après 12 mois
---   relevés et fiches : supprimés après 3 ans
--- NE PAS EXÉCUTER sans l'accord explicite du responsable du projet. Les relevés ne seraient supprimés qu'après 3 ans ; les états
--- (90 jours) et l'effacement de l'identifiant (12 mois) agissent plus tôt.
--- Étape 1 (lecture seule) : ce qui serait touché.
-select 'etats > 90 j' as t, count(*) from public.etats where created_at < now() - interval '90 days'
-union all select 'releves device à effacer', count(*) from public.releves where created_at < now() - interval '12 months' and device <> 'efface-12m'
-union all select 'fiches device à effacer', count(*) from public.fiches where created_at < now() - interval '12 months' and device <> 'efface-12m'
-union all select 'releves > 3 ans', count(*) from public.releves where created_at < now() - interval '3 years'
-union all select 'fiches > 3 ans', count(*) from public.fiches where created_at < now() - interval '3 years';
+-- Purge des données du serveur : applique les durées annoncées dans la FAQ « données » (1.3.1).
+--   états de borne : 90 jours ; identifiant de téléphone (device) : effacé après 12 mois ; relevés, fiches et pastilles : supprimés après 3 ans.
+-- À exécuter dans l'éditeur SQL de Supabase (par le mainteneur), une fois par mois, ou à planifier avec pg_cron (voir la fin).
+-- La colonne device est « not null » : l'identifiant est remplacé par une valeur aléatoire sans lien avec le téléphone (préfixe « efface- »).
+-- Rien n'est exécuté automatiquement par l'application. Sauvegardez avant la première exécution (voir docs/ et le workflow supabase-export).
 
--- Étape 2 : à lancer à la main ou à planifier (pg_cron, mensuel). La valeur 'efface-12m' respecte la contrainte de longueur (8 à 64 caractères).
--- delete from public.etats where created_at < now() - interval '90 days';
--- update public.releves set device = 'efface-12m' where created_at < now() - interval '12 months' and device <> 'efface-12m';
--- update public.etats   set device = 'efface-12m' where created_at < now() - interval '12 months' and device <> 'efface-12m';
--- update public.fiches  set device = 'efface-12m' where created_at < now() - interval '12 months' and device <> 'efface-12m';
--- delete from public.releves where created_at < now() - interval '3 years';
--- delete from public.fiches  where created_at < now() - interval '3 years';
--- Attention : la règle anti-abus (limite par téléphone) lit device ; vérifier le déclencheur limite_releves avant d'exécuter l'étape 2.
+delete from public.etats where created_at < now() - interval '90 days';
+
+update public.releves   set device = 'efface-' || left(md5(random()::text), 8) where device not like 'efface-%' and created_at < now() - interval '12 months';
+update public.pastilles set device = 'efface-' || left(md5(random()::text), 8) where device not like 'efface-%' and created_at < now() - interval '12 months';
+update public.fiches    set device = 'efface-' || left(md5(random()::text), 8) where device not like 'efface-%' and created_at < now() - interval '12 months';
+
+delete from public.releves   where created_at < now() - interval '3 years';
+delete from public.pastilles where created_at < now() - interval '3 years';
+delete from public.fiches    where created_at < now() - interval '3 years';
+
+-- Planification facultative (extension pg_cron à activer dans Database > Extensions) : chaque 1er du mois à 03:00 UTC.
+-- select cron.schedule('purge-donnees', '0 3 1 * *', $$ <coller les instructions ci-dessus> $$);

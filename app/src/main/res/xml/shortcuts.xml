@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="urgence" android:enabled="true" android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_urgence" android:shortcutLongLabel="@string/shortcut_urgence_long">
+        <intent android:action="org.borneneutre.app.URGENCE" android:targetPackage="org.borneneutre.app" android:targetClass="org.borneneutre.app.MainActivity" />
+    </shortcut>
+</shortcuts>

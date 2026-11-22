@@ -100,9 +100,8 @@ object Essai400 {
         Math.hypot(dx, dy) <= RAYON_M
     }
 
-    /** Un essai est concluant s'il a donné un résultat exploitable : tout résultat sauf un refus avec une autre voiture en charge
-     *  (partage de charge possible, essai à refaire borne libre). */
-    fun concluant(r: Releve): Boolean = r.result != Result.REFUS || r.otherCar != true
+    /** Tout essai enregistré est concluant, sauf un refus hors verdict (badge, borne éteinte, carte) qui ne dit rien de la compatibilité. */
+    fun concluant(r: Releve): Boolean = !r.horsVerdict()
 
     /** L'anneau « à essayer » reste affiché tant qu'aucun essai concluant n'existe pour la voiture de l'utilisateur. */
     fun aEssayer(lat: Double, lon: Double, relevesMaVoiture: List<Releve>): Boolean =

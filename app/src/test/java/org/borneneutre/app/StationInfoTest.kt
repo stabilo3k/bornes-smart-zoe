@@ -21,9 +21,9 @@ class StationInfoTest {
 
     @Test fun history_for_car() {
         val r = listOf(
-            Releve("1", "x", "2026-11-01", Result.OK, null, "", false, "Smart EQ fortwo"),
-            Releve("2", "x", "2026-11-10", Result.REFUS, null, "", false, "Smart EQ fortwo"),
-            Releve("3", "x", "2026-11-12", Result.OK, null, "", false, "Renault Zoé"))
+            Releve("1", "x", "2026-11-01", Result.OK, "", false, "Smart EQ fortwo"),
+            Releve("2", "x", "2026-11-10", Result.REFUS, "", false, "Smart EQ fortwo"),
+            Releve("3", "x", "2026-11-12", Result.OK, "", false, "Renault Zoé"))
         val h = StationInfo.history(r, "Smart EQ fortwo")
         assertEquals("2026-11-01", h.lastOk); assertEquals(1, h.ok); assertEquals(2, h.n)
     }
@@ -47,11 +47,11 @@ class EtatsUrgenceTest {
     @Test fun ok_releve_clears_panne_and_declared() {
         val ts = java.time.Instant.ofEpochMilli(now).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
         val tomorrow = java.time.LocalDate.parse(ts).plusDays(1).toString()
-        val ok = Releve("r", "s1", tomorrow, Result.OK, null, "", false, "Smart EQ fortwo")
+        val ok = Releve("r", "s1", tomorrow, Result.OK, "", false, "Smart EQ fortwo")
         val l = listOf(e("1", EtatKind.PANNE, false, 30), e("2", EtatKind.MARCHE, true, 30), e("3", EtatKind.OCCUPEE, false, 30))
         assertEquals(listOf("3"), Etats.shown(l, "s1", listOf(ok)).map { it.id })
         // un relevé du même jour ne lève pas une panne (il peut être antérieur)
-        val same = Releve("r2", "s1", ts, Result.OK, null, "", false, "Smart EQ fortwo")
+        val same = Releve("r2", "s1", ts, Result.OK, "", false, "Smart EQ fortwo")
         assertTrue(Etats.shown(l, "s1", listOf(same)).any { it.id == "1" })
         assertEquals(3, Etats.shown(l, "s1", emptyList()).size)
     }
@@ -79,7 +79,7 @@ class EtatsUrgenceTest {
         val car = "Smart EQ fortwo"
         fun s(id: String, dLat: Double) = Station(id, id, "", 50.9 + dLat, 4.3, "AC", "", "osm")
         val st = listOf(s("a", 0.001), s("b", 0.002), s("c", 0.003), s("d", 0.004), s("e", 0.0005))
-        fun r(id: String, res: Result) = Releve("r$id", id, "2026-11-01", res, null, "", false, car)
+        fun r(id: String, res: Result) = Releve("r$id", id, "2026-11-01", res, "", false, car)
         val out = Urgence.nearest(50.9, 4.3, st, listOf(r("a", Result.OK), r("b", Result.REFUS), r("c", Result.OK)), car, setOf("d"))
         assertEquals(listOf("a", "c", "e", "d"), out.map { it.station.id }) // d : panne signalée, gardée mais en dernier
         assertTrue(out[0].tried); assertFalse(out[2].tried); assertTrue(out[3].broken)
@@ -118,7 +118,7 @@ class FichesTest {
     @Test fun urgence_unknown_ranked_by_distance() {
         val car = "Smart EQ fortwo"
         fun s(id: String, dLat: Double) = Station(id, id, "", 50.9 + dLat, 4.3, "AC", "", "osm")
-        val out = Urgence.nearest(50.9, 4.3, listOf(s("near", 0.0005), s("good", 0.004)), emptyList(), car, emptySet(), score = { if (it.id == "good") 0.9 else 0.2 })
+        val out = Urgence.nearest(50.9, 4.3, listOf(s("near", 0.0005), s("good", 0.004)), emptyList(), car, emptySet())
         assertEquals(listOf("near", "good"), out.map { it.station.id }) // la distance prime ; l'estimation (expérimentale) ne classe plus
     }
 
@@ -213,7 +213,7 @@ class PastillesTest {
         val t = 1_800_000_000_000L
         val l = listOf(Pastille("a", "s1", "verte", false, t), Pastille("b", "s1", "verte", true, t + day), Pastille("c", "s2", "blanche", false, t))
         val r = Pastilles.summary(l, "s1")!!
-        assertTrue(r.contains("verte vue 2 fois")); assertTrue(r.contains("1 avec voiture branchée")); assertTrue(r.contains("non vérifié")); assertFalse(r.contains("blanche"))
+        assertTrue(r.contains("vert vu 2 fois")); assertTrue(r.contains("1 avec voiture branchée")); assertTrue(r.contains("non vérifié")); assertFalse(r.contains("blanche"))
     }
     @Test fun avisPartagesSignales() {
         val t = 1_800_000_000_000L

@@ -1,13 +1,15 @@
-# Installer le serveur partagé (Supabase)
+# Scripts SQL du serveur (Supabase)
 
-L'application fonctionne sans serveur (relevés locaux). Pour héberger votre propre base partagée, créez un projet Supabase gratuit, puis collez dans **SQL Editor** les scripts, **dans cet ordre** (chacun peut être relancé sans danger) :
+À exécuter par le mainteneur dans l'éditeur SQL de Supabase. L'application n'en exécute aucun. Sauvegardez d'abord (workflow `supabase-export`).
 
-1. `SUPABASE-INSTALLATION-COMPLETE.sql` : table des relevés, limites anti-abus, liste de voitures ouverte.
-2. `SUPABASE-MAJ-1.0.2-REMOTE.sql` : colonne « essai noté après coup » (`remote`).
-3. `SUPABASE-MAJ-1.0.3.sql` : états de borne (panne, occupée…).
-4. `SUPABASE-MAJ-1.0.4.sql` : fiches de borne (points, prises, puissance).
-5. `SUPABASE-MAJ-1.0.5.sql` : téléphone d'assistance sur la fiche.
+Installation neuve, dans l'ordre : `supabase.sql`, `supabase-v2.sql`, puis les mises à jour ci-dessous.
 
-Les fichiers `supabase.sql` et `supabase-v2.sql` sont les premières versions, conservées pour l'historique ; ne les utilisez pas pour une nouvelle installation.
-Adresse du projet et clé publique (anon) : constantes en tête de `app/src/main/java/org/borneneutre/app/Sync.kt` ; il faut recompiler pour changer de serveur.
-Aucune donnée personnelle : l'identifiant de téléphone est aléatoire et n'est pas lisible par les autres utilisateurs.
+| Fichier | Rôle |
+|---|---|
+| `supabase.sql` | Tables et règles de base (relevés) |
+| `supabase-v2.sql` | Limites d'envoi par téléphone et par heure |
+| `SUPABASE-MAJ-1.0.3.sql`, `-1.0.4.sql`, `-1.0.5.sql` | Mises à jour des versions 1.0.x |
+| `SUPABASE-MAJ-1.3-pastilles.sql` | Table des pastilles vues ; lecture sans la colonne `device` ; fonction de limite « security definer » (correctif du 20/11/2026) |
+| `SUPABASE-PURGE.sql` | Purge : états 90 jours ; identifiant de téléphone effacé après 12 mois ; relevés, fiches et pastilles supprimés après 3 ans. À lancer une fois par mois (ou planifier avec pg_cron) |
+
+La colonne `device` (identifiant aléatoire du téléphone) n'est jamais lisible publiquement.
