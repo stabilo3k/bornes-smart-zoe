@@ -1,0 +1,1 @@
+Version 1.3.2. Purple and grey rings on the map (hypotheses, never a verdict), hint levels on each charger, sticker badges, "Classement par indices" button in Urgence, duplicate charger merging, expanded FAQ (diagrams, indicator light, intended audience), stricter release checks.

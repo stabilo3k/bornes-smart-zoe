@@ -1,0 +1,1 @@
+Version 1.3.2. Anneaux violet et gris sur la carte (hypothèses, jamais un verdict), niveaux d'indice sur chaque borne, pastilles d'autocollant, bouton « Classement par indices » dans Urgence, fusion des doublons de bornes, FAQ enrichie (schémas, voyants, public visé), contrôles de publication renforcés.

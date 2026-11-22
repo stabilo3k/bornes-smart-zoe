@@ -1,0 +1,1 @@
+Versie 1.3.2. Paarse en grijze ringen op de kaart (hypotheses, nooit een oordeel), aanwijzingsniveaus per laadpaal, stickerbadges, knop « Classement par indices » in Urgence, samenvoeging van dubbele palen, uitgebreide FAQ, strengere publicatiecontroles.
