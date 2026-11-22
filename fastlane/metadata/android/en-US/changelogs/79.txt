@@ -1,0 +1,1 @@
+Version 1.3.3. Automatic update: progress bar, then the installer opens after the download (GitHub variant). FAQ: manual installation explained.

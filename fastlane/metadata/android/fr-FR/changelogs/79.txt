@@ -1,0 +1,1 @@
+Version 1.3.3. Mise à jour automatique : barre de progression puis installation ouverte après le téléchargement (variante GitHub). FAQ : installation à la main expliquée.
