@@ -1,7 +1,7 @@
 {
-  "versionCode": 81,
-  "versionName": "1.3.5",
-  "apk": "https://github.com/stabilo3k/bornes-smart-zoe/releases/download/v1.3.5/BornesSmartZoe-1.3.5.apk",
-  "page": "https://github.com/stabilo3k/bornes-smart-zoe/releases/tag/v1.3.5",
-  "notes": "Légende de la carte et schéma « 3 fils ou 4 fils » redessinés ; la fenêtre Urgence explique le classement normal et le classement par indices."
+  "versionCode": 92,
+  "versionName": "1.3.6",
+  "apk": "https://github.com/stabilo3k/bornes-smart-zoe/releases/download/v1.3.6/BornesSmartZoe-1.3.6.apk",
+  "page": "https://github.com/stabilo3k/bornes-smart-zoe/releases/tag/v1.3.6",
+  "notes": "Filtre « nouvelles bornes », boutons Appeler et Contact pour prévenir l'exploitant, lecture de QR, modes démo et essai, export/import des relevés, sommaire de la FAQ ; « pastille » devient « sticker »."
 }
