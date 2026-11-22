@@ -1,0 +1,1 @@
+Version 1.3.11. Validated import (refused in demo and trial modes), sealed demo and trial modes (nothing is sent), "Erase my trial entries" in ⓘ, more reliable QR reading, "Fault fixed", a "same site probably" hint, three welcome screens, an "Urgency" icon shortcut, coloured sticker choices with an enlargeable illustration, a three-part "Stations shown" window, updated FAQ texts.

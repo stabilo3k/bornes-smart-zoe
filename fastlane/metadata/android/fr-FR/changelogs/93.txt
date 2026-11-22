@@ -1,1 +1,0 @@
-Version 1.3.7. Corrections de sécurité de l'import et des modes démo et essai, lecture de QR plus fiable, « Panne réglée » complète, indice « même site probable » dans la fiche, trois écrans d'accueil, raccourci d'icône « Urgence batterie ».

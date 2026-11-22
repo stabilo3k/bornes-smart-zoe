@@ -1,1 +1,0 @@
-Version 1.3.7. Safer import and demo/trial modes, more reliable QR reading, complete "Fault fixed", a "same site probably" hint on the station card, three welcome screens, an "Urgency" icon shortcut.

@@ -1,7 +1,7 @@
 {
-  "versionCode": 92,
-  "versionName": "1.3.6",
-  "apk": "https://github.com/stabilo3k/bornes-smart-zoe/releases/download/v1.3.6/BornesSmartZoe-1.3.6.apk",
-  "page": "https://github.com/stabilo3k/bornes-smart-zoe/releases/tag/v1.3.6",
-  "notes": "Filtre « nouvelles bornes », boutons Appeler et Contact pour prévenir l'exploitant, lecture de QR, modes démo et essai, export/import des relevés, sommaire de la FAQ ; « pastille » devient « sticker »."
+  "versionCode": 97,
+  "versionName": "1.3.11",
+  "apk": "https://github.com/stabilo3k/bornes-smart-zoe/releases/download/v1.3.11/BornesSmartZoe-1.3.11.apk",
+  "page": "https://github.com/stabilo3k/bornes-smart-zoe/releases/tag/v1.3.11",
+  "notes": "Import validé, modes démo et essai étanches, « Effacer mes saisies d'essai », lecture de QR plus fiable, choix de sticker colorés, trois écrans d'accueil, raccourci Urgence batterie, FAQ mise à jour."
 }
