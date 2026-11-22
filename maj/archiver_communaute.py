@@ -4,6 +4,8 @@
 Pourquoi : le serveur supprime les relevés, fiches et pastilles après 3 ans (tâche pg_cron `purge-donnees`). Ce script copie les
 colonnes publiques (jamais la colonne `device`) dans data/archive-communaute/*.json, en AJOUT SEUL : une ligne déjà archivée n'est
 jamais supprimée, même si elle disparaît du serveur. Licence des données : ODbL 1.0 (voir DATA-LICENCE.md).
+Effacement sur demande : les identifiants de ligne (client_id) listés dans data/archive-communaute/exclusions.json sont retirés de
+l'archive et jamais réarchivés (voir PRIVACY.md). Le fichier ne contient que des identifiants de ligne, aucune autre donnée.
 La clé ci-dessous est la clé PUBLIABLE de l'application (publique par conception ; accès limité par les règles de la base).
 """
 import json, os, sys, urllib.request
@@ -33,17 +35,25 @@ def fetch(table, cols):
             return rows
         start += PAGE
 
+def exclusions():
+    path = os.path.join(DEST, "exclusions.json")
+    if not os.path.exists(path):
+        return set()
+    return set(json.load(open(path, encoding="utf-8")))
+
 def main():
     os.makedirs(DEST, exist_ok=True)
+    excl = exclusions()
     for table, (cols, sortkey) in TABLES.items():
         path = os.path.join(DEST, f"{table}.json")
         old = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else []
-        merged = {r["client_id"]: r for r in old}
+        merged = {r["client_id"]: r for r in old if r["client_id"] not in excl}
         new = fetch(table, cols)
         for r in new:
             if "device" in r:
                 sys.exit("colonne device présente : arrêt")
-            merged.setdefault(r["client_id"], r)
+            if r["client_id"] not in excl:
+                merged.setdefault(r["client_id"], r)
         out = sorted(merged.values(), key=lambda r: (str(r.get(sortkey, "")), r["client_id"]))
         with open(path, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, indent=1)

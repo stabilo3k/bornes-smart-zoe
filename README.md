@@ -26,8 +26,10 @@ Mode démo (position fictive sur la Grand-Place ; aucun relevé personnel). Fond
 
 Licence : GPL-3.0-or-later (fichier `LICENSE`). Compilation : `gradle assembleRelease` (Gradle 8+, pas de wrapper dans le dépôt) ; la signature de publication se passe par `-PBN_KEYSTORE=... -PBN_PROPS=...` (clé hors dépôt).
 
-Sources de données : © contributeurs OpenStreetMap (ODbL), OpenFreeMap, Bruxelles Mobilité (CC0, CC BY), Service public de Wallonie (CC BY 4.0), liste « 230 V » de TotalEnergies / Charging Belgium (données du 16/11/2026, réutilisation autorisée par écrit), Departement Mobiliteit en Openbare Werken / Eco-Movement (Open Data Vlaanderen). Détails : `DATA-LICENCE.md`.
+Sources de données : © contributeurs OpenStreetMap (ODbL), OpenFreeMap, Bruxelles Mobilité (CC BY 4.0), Service public de Wallonie (CC BY 4.0), liste « 230 V » de TotalEnergies / Charging Belgium (données du 16/11/2026, réutilisation autorisée par écrit), Departement Mobiliteit en Openbare Werken / Eco-Movement (Open Data Vlaanderen). Détails : `DATA-LICENCE.md`.
 
 Aucune donnée personnelle dans ce dépôt : ni plaque, ni numéro de châssis, ni position de l'utilisateur. Politique de confidentialité (FR/EN/NL) : [`PRIVACY.md`](PRIVACY.md).
 
 Source du code : le dossier `app/` de chaque release correspond au code de la **version 1.3.11** (commit b9f8730) ; les releases 1.3.2 à 1.3.6 ont été publiées avec un `app/` resté à la 1.3.1 (voir la note de chacune).
+
+Projet indépendant, non affilié à Smart, Mercedes-Benz, Renault ni aux exploitants de bornes cités ; les noms de marques ne servent qu'à décrire les voitures concernées.
