@@ -1,0 +1,1 @@
+Version 1.3.4. Map legend: the estimate dots (green, pink, light grey) are now explained.

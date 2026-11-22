@@ -1,0 +1,1 @@
+Version 1.3.4. Légende de la carte : les points d'estimation (vert, rose, gris clair) sont expliqués.
