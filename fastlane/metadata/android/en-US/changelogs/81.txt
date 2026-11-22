@@ -1,0 +1,1 @@
+Version 1.3.5. Map legend and the "3 wires or 4 wires" diagram redrawn; the Urgency window now explains the normal ranking and the ranking by clues.

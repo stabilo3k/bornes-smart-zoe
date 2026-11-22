@@ -1,0 +1,1 @@
+Versie 1.3.5. Kaartlegende en schema "3 of 4 draden" opnieuw getekend; het Urgentie-venster legt de gewone rangschikking en de rangschikking op aanwijzingen uit.
