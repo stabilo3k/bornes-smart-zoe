@@ -5,7 +5,7 @@ Application Android gratuite, libre et sans publicité : les conducteurs de **Sm
 ## Installer l'application (Android)
 
 1. Sur ton téléphone Android, ouvre la **[dernière version](https://github.com/stabilo3k/bornes-smart-zoe/releases/latest)**.
-2. Descends jusqu'à « Assets » et touche le fichier **`BorneNeutre-….apk`** pour le télécharger.
+2. Descends jusqu'à « Assets » et touche le fichier **`BornesSmartZoe-….apk`** pour le télécharger.
 3. Ouvre le fichier téléchargé. Android demande d'autoriser l'installation depuis ce navigateur : accepte (« Installer des applications inconnues »), puis touche « Installer ».
 4. Au premier lancement, choisis ta voiture. Les relevés sont anonymes.
 
@@ -15,7 +15,7 @@ Application Android gratuite, libre et sans publicité : les conducteurs de **Sm
 
 Contexte : une partie du réseau belge est en 3×230 V sans neutre. Certaines voitures refusent alors de charger. Aucune base publique n'indique le neutre ; l'information vient des essais des conducteurs.
 
-État : version 1.3.0. Deux gros boutons « Ça charge » / « Ne charge pas » ; l'app prend la position GPS, retrouve la borne (listes intégrées de Belgique et de Bruxelles, données ouvertes flamandes, OpenStreetMap), demande confirmation et enregistre. Carte colorée par voiture, fiches de borne (adresse, source, points, prises, téléphone d'assistance), pannes et états, bouton « Pastille » (constat visuel de la pastille collée sur la borne, jamais compté dans le verdict), anneaux « à essayer » (violet, bornes classées 400 V par Bruxelles Mobilité) et « probablement non compatible » (gris, liste « 230 V » de TotalEnergies, données du 16/11/2026) : des hypothèses, non mesurées. Urgence batterie, FAQ sourcée, écran « À propos », mise à jour mensuelle des listes de bornes (dossier `data/`). Relevés partagés anonymes sur un serveur Supabase : installation décrite dans `docs/LISEZ-MOI-SQL.md` (mise à jour 1.3 : `docs/SUPABASE-MAJ-1.3-pastilles.sql`). Si le serveur s'arrête, l'application continue de fonctionner hors ligne.
+État : version 1.3.6 (22/11/2026). Deux gros boutons « Ça charge » / « Ne charge pas » : l'app prend la position GPS, retrouve la borne (listes intégrées de Belgique et de Bruxelles, données ouvertes flamandes, OpenStreetMap), demande confirmation et enregistre. Carte colorée par voiture, fiches de borne (adresse, source, points, prises, téléphone d'assistance, boutons Appeler et Formulaire de contact pour prévenir l'exploitant), pannes et états (dont « Panne réglée »), bouton « Sticker sur la borne » (constat visuel du sticker collé sur la borne, jamais compté dans le verdict), lecture du QR de la borne (sur le téléphone, aucune image gardée), anneaux « à essayer » (violet, bornes classées 400 V par Bruxelles Mobilité) et « probablement non compatible » (gris, liste « 230 V » de TotalEnergies, données du 16/11/2026) : des hypothèses, non mesurées. Filtre « nouvelles bornes », Urgence batterie, FAQ sourcée avec sommaire, écran « À propos », mode démo (position fictive, rien n'est enregistré) et mode essai (rien n'est envoyé), export et import de vos relevés, mise à jour automatique des listes de bornes (dossier `data/`). Relevés partagés anonymes sur un serveur Supabase : installation décrite dans `docs/LISEZ-MOI-SQL.md`. Si le serveur s'arrête, l'application continue de fonctionner hors ligne.
 
 Licence : GPL-3.0-or-later (fichier `LICENSE`). Compilation : `gradle assembleRelease` (Gradle 8+, pas de wrapper dans le dépôt) ; la signature de publication se passe par `-PBN_KEYSTORE=... -PBN_PROPS=...` (clé hors dépôt).
 
