@@ -31,6 +31,8 @@ jobs:
             (if .releves_1h >= 400 then "relevés/h \(.releves_1h)" else empty end),
             (if .pastilles_1h >= 200 then "pastilles/h \(.pastilles_1h)" else empty end),
             (if .fiches_1h >= 150 then "fiches/h \(.fiches_1h)" else empty end),
+            (if (.etats_1h // 0) >= 250 then "états/h \(.etats_1h)" else empty end),
+            (if (.borne_max_etats_24h // 0) >= 25 then "états sur une borne/24h \(.borne_max_etats_24h)" else empty end),
             (if .borne_max_releves_24h >= 25 then "relevés sur une borne/24h \(.borne_max_releves_24h)" else empty end),
             (if .borne_max_pastilles_24h >= 25 then "pastilles sur une borne/24h \(.borne_max_pastilles_24h)" else empty end),
             (if .telephone_max_releves_24h >= 35 then "relevés d un téléphone/24h \(.telephone_max_releves_24h)" else empty end),
