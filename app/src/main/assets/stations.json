@@ -76,7 +76,7 @@
   "lat": 50.7007143,
   "lon": 4.0383619,
   "current": "AC",
-  "note": "11 kW, près d'Enghien (1540) ; deux relevés positifs à un an d'intervalle",
+  "note": "11 kW, près d'Enghien (1540)",
   "kind": "releve"
  },
  {
@@ -86,7 +86,7 @@
   "lat": 50.6913654,
   "lon": 4.0575222,
   "current": "AC",
-  "note": "Parking du centre commercial du Parc, à côté de Brico ; les autres voitures chargent",
+  "note": "Parking du centre commercial du Parc, à côté de Brico",
   "kind": "releve"
  },
  {
@@ -96,7 +96,7 @@
   "lat": 50.6901414,
   "lon": 4.0336843,
   "current": "AC",
-  "note": "2 prises ; 11 kW selon une source, 22 kW selon le SPW : à confirmer. À essayer",
+  "note": "2 prises ; 11 kW selon une source, 22 kW selon le SPW : à confirmer",
   "kind": "candidat"
  },
  {
@@ -106,7 +106,7 @@
   "lat": 50.6914979,
   "lon": 4.0271788,
   "current": "AC",
-  "note": "À essayer (données communautaires)",
+  "note": "",
   "kind": "candidat"
  },
  {
@@ -116,7 +116,7 @@
   "lat": 50.691491,
   "lon": 4.0277527,
   "current": "AC",
-  "note": "7 kW, accès libre. À essayer (données communautaires)",
+  "note": "7 kW, accès libre",
   "kind": "candidat"
  },
  {
@@ -486,7 +486,7 @@
   "lat": 50.7002447,
   "lon": 4.0362873,
   "current": "AC",
-  "note": "22 kW, 2 boîtiers près du cimetière ; accès par un portail de concessionnaire agricole (ouvert un samedi, fermé un dimanche en 2025)",
+  "note": "22 kW, 2 boîtiers près du cimetière ; accès par un portail de concessionnaire agricole",
   "kind": "releve"
  },
  {
@@ -496,7 +496,7 @@
   "lat": 50.7001769,
   "lon": 4.0540368,
   "current": "AC",
-  "note": "22 kW, près du rond-point ; les autres voitures chargent",
+  "note": "22 kW, près du rond-point",
   "kind": "releve"
  },
  {
@@ -506,7 +506,7 @@
   "lat": 50.6958016,
   "lon": 4.0345152,
   "current": "AC",
-  "note": "22 kW, 1 prise libre sur 2 ; à essayer",
+  "note": "22 kW, 2 prises",
   "kind": "candidat"
  },
  {
@@ -516,7 +516,7 @@
   "lat": 50.6973419,
   "lon": 4.0342305,
   "current": "AC",
-  "note": "22 kW, 2 prises ; à essayer",
+  "note": "22 kW, 2 prises",
   "kind": "candidat"
  },
  {
@@ -526,7 +526,7 @@
   "lat": 50.6972215,
   "lon": 4.0488624,
   "current": "AC",
-  "note": "22 kW, près de la gare ; à essayer",
+  "note": "22 kW, près de la gare",
   "kind": "candidat"
  },
  {
@@ -536,7 +536,7 @@
   "lat": 50.8927751,
   "lon": 4.321645,
   "current": "AC",
-  "note": "Borne charge.brussels, 2 prises Type 2 ; autocollant vert vu le 19/11",
+  "note": "Borne charge.brussels, 2 prises Type 2",
   "kind": "releve"
  }
 ]

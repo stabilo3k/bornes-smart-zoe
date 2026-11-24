@@ -13,7 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Archiver
-        run: python3 -I maj/archiver_communaute.py
+        id: arch
+        run: |
+          set +e
+          python3 -I maj/archiver_communaute.py
+          c=$?
+          echo "code=$c" >> "$GITHUB_OUTPUT"
+          # code 3 = des lignes écartées : on publie quand même l'archive, puis l'étape « Alerte » échoue ; tout autre code non nul arrête tout
+          if [ "$c" != "0" ] && [ "$c" != "3" ]; then exit "$c"; fi
       - name: Publier si changement
         run: |
           set -euo pipefail
@@ -24,3 +31,8 @@ jobs:
           git commit -m "Archive communautaire : mise à jour automatique (données publiques, sans identifiant de téléphone)"
           git pull --rebase origin main
           git push origin HEAD:main
+      - name: Alerte si des lignes ont été écartées
+        if: steps.arch.outputs.code == '3'
+        run: |
+          echo "::error::Des lignes du serveur ont été écartées de l'archive (forme invalide) : aligner valide() sur les contraintes du serveur (maj/archiver_communaute.py)."
+          exit 1

@@ -20,7 +20,7 @@ TABLES = {
 }
 PAGE = 1000
 CARS = {"Smart EQ fortwo", "Smart EQ forfour", "Renault Zoé", "Renault Twingo électrique", "Renault Kangoo E-Tech", "Nissan Townstar EV", "Mercedes eCitan"}
-CODES = {"verte", "bleue", "blanche", "aucune"}
+CODES = {"verte", "bleue", "blanche", "aucune", "autre", "bleue_22_400", "bleue_74_230", "bleue_autre"}  # = contraintes du serveur (pastilles.code, fiches.pastille) ; à tenir alignées
 CTRL = re.compile(r"[\x00-\x1f\x7f<>]")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
@@ -43,10 +43,10 @@ def valide(table, r):
     if not DATE.match(d) or d[:10] > demain:
         return False
     if table == "releves":
-        return _geo(r) and r.get("result") in ("OK", "REFUS") and r.get("current") in (None, "", "AC", "DC") and r.get("car") in CARS | {None, ""}
+        return _geo(r) and r.get("result") in ("OK", "REFUS", "LIMITE") and r.get("current") in (None, "", "AC", "DC", "?") and r.get("car") in CARS | {None, ""}
     if table == "pastilles":
         return r.get("code") in CODES and isinstance(r.get("tested"), bool)
-    return _geo(r) and isinstance(r.get("points"), int) and isinstance(r.get("plugs"), int) and (r.get("kw") is None or isinstance(r["kw"], (int, float))) \
+    return _geo(r) and (r.get("points") is None or isinstance(r["points"], int)) and (r.get("plugs") is None or isinstance(r["plugs"], int)) and (r.get("kw") is None or isinstance(r["kw"], (int, float))) \
         and (r.get("pastille") is None or r["pastille"] in CODES)
 
 def fetch(table, cols):
@@ -68,11 +68,13 @@ def exclusions():
     path = os.path.join(DEST, "exclusions.json")
     if not os.path.exists(path):
         return set()
-    return set(json.load(open(path, encoding="utf-8")))
+    # liste de chaînes (client_id) ou d'objets {"client_id": ...} : les deux formes sont acceptées
+    return {e["client_id"] if isinstance(e, dict) else e for e in json.load(open(path, encoding="utf-8"))}
 
 def main():
     os.makedirs(DEST, exist_ok=True)
     excl = exclusions()
+    total_ecartees = 0
     for table, (cols, sortkey) in TABLES.items():
         path = os.path.join(DEST, f"{table}.json")
         old = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else []
@@ -86,6 +88,8 @@ def main():
                 continue
             if not valide(table, r):
                 ecartees += 1
+                total_ecartees += 1
+                print(f"::warning::{table} : ligne écartée (forme invalide), client_id={str(r.get('client_id'))[:40]!r}")
                 continue
             merged.setdefault(r["client_id"], r)
         out = sorted(merged.values(), key=lambda r: (str(r.get(sortkey, "")), r["client_id"]))
@@ -93,6 +97,9 @@ def main():
             json.dump(out, f, ensure_ascii=False, indent=1)
             f.write("\n")
         print(f"{table} : {len(new)} sur le serveur, {len(out)} archivés, {ecartees} écartés (forme invalide)")
+    if total_ecartees:
+        # code 3 : l'archive est écrite et publiée par le workflow, puis le workflow échoue pour alerter (une ligne légitime a pu être écartée)
+        sys.exit(3)
 
 if __name__ == "__main__":
     main()

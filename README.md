@@ -28,7 +28,7 @@ Licence : GPL-3.0-or-later (fichier `LICENSE`). Compilation : `gradle assembleRe
 
 Sources de données : © contributeurs OpenStreetMap (ODbL), OpenFreeMap, Bruxelles Mobilité (CC BY 4.0), Service public de Wallonie (CC BY 4.0), liste « 230 V » de TotalEnergies / Charging Belgium (données du 16/11/2026, réutilisation autorisée par écrit), Departement Mobiliteit en Openbare Werken / Eco-Movement (Open Data Vlaanderen). Détails : `DATA-LICENCE.md`.
 
-Aucune donnée personnelle dans ce dépôt : ni plaque, ni numéro de châssis, ni position de l'utilisateur. Politique de confidentialité (FR/EN/NL) : [`PRIVACY.md`](PRIVACY.md).
+Aucune donnée personnelle dans ce dépôt : ni plaque, ni numéro de châssis, ni position de l'utilisateur. Politique de confidentialité (FR/EN/NL) : [`PRIVACY.md`](PRIVACY.md). En cas de différence avec la FAQ de la version 1.3.11 de l'application (qui dit « supprimé après 3 ans » sans citer l'archive publique), `PRIVACY.md` fait foi : l'archive publique cumulative n'est pas purgée.
 
 Source du code : le dossier `app/` de chaque release correspond au code de la **version 1.3.11** (commit b9f8730) ; les releases 1.3.2 à 1.3.6 ont été publiées avec un `app/` resté à la 1.3.1 (voir la note de chacune).
 
