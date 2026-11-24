@@ -20,7 +20,7 @@ TABLES = {
 }
 PAGE = 1000
 CARS = {"Smart EQ fortwo", "Smart EQ forfour", "Renault Zoé", "Renault Twingo électrique", "Renault Kangoo E-Tech", "Nissan Townstar EV", "Mercedes eCitan"}
-CODES = {"verte", "bleue", "blanche", "aucune", "autre", "bleue_22_400", "bleue_74_230", "bleue_autre"}  # = contraintes du serveur (pastilles.code, fiches.pastille) ; à tenir alignées
+CODES = {"verte", "bleue", "blanche", "aucune", "autre", "bleue_22_400", "bleue_74_230", "bleue_autre", "bleue_11_400"}  # = contraintes du serveur (pastilles.code, fiches.pastille) ; à tenir alignées
 CTRL = re.compile(r"[\x00-\x1f\x7f<>]")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
