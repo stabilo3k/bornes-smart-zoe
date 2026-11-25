@@ -1,10 +1,10 @@
 {
- "date": "2026-11-24",
+ "date": "2026-11-25",
  "sources": {
   "osm": {
    "statut": "ok",
-   "n": 6081,
-   "avant": 6082
+   "n": 6080,
+   "avant": 6081
   },
   "bxl": {
    "statut": "ok",
