@@ -49,6 +49,19 @@ def valide(table, r):
     return _geo(r) and (r.get("points") is None or isinstance(r["points"], int)) and (r.get("plugs") is None or isinstance(r["plugs"], int)) and (r.get("kw") is None or isinstance(r["kw"], (int, float))) \
         and (r.get("pastille") is None or r["pastille"] in CODES)
 
+def minimiser(table, r):
+    """Minimisation avant publication (25/11/2026) : la date est tronquée au jour (jamais l'heure : avec peu de contributeurs, des horaires et des
+    lieux publics décrivent les déplacements d'une personne) et la position de la borne est arrondie à 5 décimales (environ 1 m)."""
+    r = dict(r)
+    if table != "releves" and isinstance(r.get("created_at"), str):
+        r["created_at"] = r["created_at"][:10]
+    if isinstance(r.get("ts"), str):
+        r["ts"] = r["ts"][:10]
+    for k in ("lat", "lon"):
+        if isinstance(r.get(k), (int, float)):
+            r[k] = round(r[k], 5)
+    return r
+
 def fetch(table, cols):
     rows, start = [], 0
     while True:
@@ -78,7 +91,7 @@ def main():
     for table, (cols, sortkey) in TABLES.items():
         path = os.path.join(DEST, f"{table}.json")
         old = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else []
-        merged = {r["client_id"]: r for r in old if r["client_id"] not in excl}
+        merged = {r["client_id"]: minimiser(table, r) for r in old if r["client_id"] not in excl}
         new = fetch(table, cols)
         ecartees = 0
         for r in new:
@@ -91,7 +104,7 @@ def main():
                 total_ecartees += 1
                 print(f"::warning::{table} : ligne écartée (forme invalide), client_id={str(r.get('client_id'))[:40]!r}")
                 continue
-            merged.setdefault(r["client_id"], r)
+            merged.setdefault(r["client_id"], minimiser(table, r))
         out = sorted(merged.values(), key=lambda r: (str(r.get(sortkey, "")), r["client_id"]))
         with open(path, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, indent=1)

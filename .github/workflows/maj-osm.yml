@@ -10,7 +10,7 @@ jobs:
   extraire:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Copie des fichiers précédents (garde-fous relatifs de publier.py)
         run: mkdir -p /tmp/prev && cp data/*.json /tmp/prev/
       - run: sudo apt-get update && sudo apt-get install -y osmium-tool
