@@ -31,5 +31,82 @@
   "result": "OK",
   "car": "Smart EQ fortwo",
   "ts": "2026-11-19"
+ },
+ {
+  "client_id": "u1da4ccb920fd484a",
+  "station_id": "osm-23",
+  "station_name": "Avenue Stiénon (OSM)",
+  "lat": 50.89249,
+  "lon": 4.33349,
+  "current": "?",
+  "result": "REFUS",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-24"
+ },
+ {
+  "client_id": "u592de1beb22841ed",
+  "station_id": "osm-15",
+  "station_name": "Avenue des Citronniers (OSM)",
+  "lat": 50.89504,
+  "lon": 4.32719,
+  "current": "?",
+  "result": "OK",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-24"
+ },
+ {
+  "client_id": "u6875d0c9ae754c0c",
+  "station_id": "osm-4",
+  "station_name": "Rue Maurice Van Rolleghem (OSM)",
+  "lat": 50.89118,
+  "lon": 4.32456,
+  "current": "?",
+  "result": "OK",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-24"
+ },
+ {
+  "client_id": "u6a0d39df8ae44362",
+  "station_id": "osm-node-10124418168",
+  "station_name": "EnergyDrive",
+  "lat": 50.89796,
+  "lon": 4.32714,
+  "current": "AC",
+  "result": "REFUS",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-24"
+ },
+ {
+  "client_id": "u98b32368c93b4490",
+  "station_id": "colruyt-wemmel",
+  "station_name": "Colruyt, Chaussée Romaine 906",
+  "lat": 50.89634,
+  "lon": 4.32091,
+  "current": "AC",
+  "result": "OK",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-24"
+ },
+ {
+  "client_id": "uec2ccf0fa0374662",
+  "station_id": "osm-node-10797380351",
+  "station_name": "EnergyDrive",
+  "lat": 50.89072,
+  "lon": 4.32694,
+  "current": "AC",
+  "result": "REFUS",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-24"
+ },
+ {
+  "client_id": "uf8d259964c6047dc",
+  "station_id": "osm-node-11341789398",
+  "station_name": "EnergyDrive",
+  "lat": 50.89244,
+  "lon": 4.32092,
+  "current": "AC",
+  "result": "OK",
+  "car": "Smart EQ fortwo",
+  "ts": "2026-11-24"
  }
 ]

@@ -58,5 +58,65 @@
   "kw": null,
   "pastille": "aucune",
   "created_at": "2026-11-18"
+ },
+ {
+  "client_id": "f39a4cc90d8d84315",
+  "station_id": "colruyt-wemmel",
+  "station_name": "Colruyt, Chaussée Romaine 906",
+  "lat": 50.89634,
+  "lon": 4.32091,
+  "points": 2,
+  "plugs": 2,
+  "kw": null,
+  "pastille": null,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "f6695a2c210204af1",
+  "station_id": "osm-4",
+  "station_name": "Rue Maurice Van Rolleghem (OSM)",
+  "lat": 50.89118,
+  "lon": 4.32456,
+  "points": 1,
+  "plugs": 2,
+  "kw": null,
+  "pastille": null,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "fa621f55ba35b4a2f",
+  "station_id": "osm-node-11341789398",
+  "station_name": "EnergyDrive",
+  "lat": 50.89244,
+  "lon": 4.32092,
+  "points": 1,
+  "plugs": 2,
+  "kw": 11.0,
+  "pastille": null,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "fea60e93e65974c33",
+  "station_id": "bx-1f3bff4a-a101-11ee-a7d0-42010aa40fc0",
+  "station_name": "Borne (Bruxelles)",
+  "lat": 50.8721,
+  "lon": 4.3279,
+  "points": 1,
+  "plugs": 2,
+  "kw": 11.0,
+  "pastille": null,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "feb68468bfa544b7c",
+  "station_id": "osm-15",
+  "station_name": "Avenue des Citronniers (OSM)",
+  "lat": 50.89504,
+  "lon": 4.32719,
+  "points": 1,
+  "plugs": 2,
+  "kw": null,
+  "pastille": null,
+  "created_at": "2026-11-24"
  }
 ]

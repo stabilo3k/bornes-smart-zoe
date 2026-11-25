@@ -61,5 +61,82 @@
   "code": "aucune",
   "tested": false,
   "created_at": "2026-11-22"
+ },
+ {
+  "client_id": "p27835b26822d4f72",
+  "station_id": "osm-node-13719236836",
+  "code": "bleue_11_400",
+  "tested": false,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "p3319fd111be84865",
+  "station_id": "osm-4",
+  "code": "aucune",
+  "tested": true,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "p4b93ae8d30db4f0e",
+  "station_id": "osm-node-10797380351",
+  "code": "aucune",
+  "tested": true,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "p7ade6e111a194a34",
+  "station_id": "osm-15",
+  "code": "aucune",
+  "tested": true,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "p8344716561984a14",
+  "station_id": "osm-node-11341789398",
+  "code": "bleue_11_400",
+  "tested": true,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "p90bf53eff3c243cc",
+  "station_id": "colruyt-wemmel",
+  "code": "aucune",
+  "tested": true,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "pbe56ea841ded4292",
+  "station_id": "osm-23",
+  "code": "bleue_74_230",
+  "tested": true,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "pcb58fe301a404163",
+  "station_id": "bx-bea62224-67a2-11ee-bb92-42010aa40fc0",
+  "code": "bleue_22_400",
+  "tested": false,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "pf04f529d46644100",
+  "station_id": "bx-1f3bff4a-a101-11ee-a7d0-42010aa40fc0",
+  "code": "bleue_11_400",
+  "tested": false,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "pf647addac7c04aef",
+  "station_id": "osm-node-10090216041",
+  "code": "verte",
+  "tested": false,
+  "created_at": "2026-11-24"
+ },
+ {
+  "client_id": "pfa3214518ee54403",
+  "station_id": "osm-node-10124418168",
+  "code": "bleue_74_230",
+  "tested": true,
+  "created_at": "2026-11-24"
  }
 ]
