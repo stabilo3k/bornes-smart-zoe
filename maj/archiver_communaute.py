@@ -14,7 +14,7 @@ URL = "https://evvoufjrzejumdpjgoek.supabase.co"
 KEY = "sb_publishable_phgSpnbZ0xQSz93hzalZ9A_mWcgPrmx"
 DEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "archive-communaute")
 TABLES = {
-    "releves": ("client_id,station_id,station_name,lat,lon,current,result,car,ts", "ts"),
+    "releves": ("client_id,station_id,station_name,lat,lon,current,result,car,ts,kw,motif", "ts"),  # kw et motif ajoutés le 26/11/2026 (essai58) : les lignes déjà archivées ne les portent pas (ajout seul)
     "pastilles": ("client_id,station_id,code,tested,created_at", "created_at"),
     "fiches": ("client_id,station_id,station_name,lat,lon,points,plugs,kw,pastille,created_at", "created_at"),
 }
@@ -43,7 +43,8 @@ def valide(table, r):
     if not DATE.match(d) or d[:10] > demain:
         return False
     if table == "releves":
-        return _geo(r) and r.get("result") in ("OK", "REFUS", "LIMITE") and r.get("current") in (None, "", "AC", "DC", "?") and r.get("car") in CARS | {None, ""}
+        return _geo(r) and r.get("result") in ("OK", "REFUS", "LIMITE") and r.get("current") in (None, "", "AC", "DC", "?") and r.get("car") in CARS | {None, ""} \
+            and (r.get("kw") is None or (isinstance(r["kw"], (int, float)) and not isinstance(r["kw"], bool) and 0 < r["kw"] <= 400)) and r.get("motif") in (None, "", "voyant", "eteinte", "badge", "carte", "erreur")
     if table == "pastilles":
         return r.get("code") in CODES and isinstance(r.get("tested"), bool)
     return _geo(r) and (r.get("points") is None or isinstance(r["points"], int)) and (r.get("plugs") is None or isinstance(r["plugs"], int)) and (r.get("kw") is None or isinstance(r["kw"], (int, float))) \
@@ -57,6 +58,8 @@ def minimiser(table, r):
         r["created_at"] = r["created_at"][:10]
     if isinstance(r.get("ts"), str):
         r["ts"] = r["ts"][:10]
+    if isinstance(r.get("kw"), (int, float)):
+        r["kw"] = round(r["kw"], 1)
     for k in ("lat", "lon"):
         if isinstance(r.get(k), (int, float)):
             r[k] = round(r[k], 5)
