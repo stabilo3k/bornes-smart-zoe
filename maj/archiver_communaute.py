@@ -19,6 +19,7 @@ TABLES = {
     "fiches": ("client_id,station_id,station_name,lat,lon,points,plugs,kw,pastille,created_at", "created_at"),
 }
 PAGE = 1000
+SOURCES = {"releves": "releves_saines"}  # vue serveur sans les relevés marqués suspects (27/11/2026)
 CARS = {"Smart EQ fortwo", "Smart EQ forfour", "Renault Zoé", "Renault Twingo électrique", "Renault Kangoo E-Tech", "Nissan Townstar EV", "Mercedes eCitan"}
 CODES = {"verte", "bleue", "blanche", "aucune", "autre", "bleue_22_400", "bleue_74_230", "bleue_autre", "bleue_11_400"}  # = contraintes du serveur (pastilles.code, fiches.pastille) ; à tenir alignées
 CTRL = re.compile(r"[\x00-\x1f\x7f<>]")
@@ -69,7 +70,7 @@ def fetch(table, cols):
     rows, start = [], 0
     while True:
         req = urllib.request.Request(
-            f"{URL}/rest/v1/{table}?select={cols}&order=client_id.asc",
+            f"{URL}/rest/v1/{SOURCES.get(table, table)}?select={cols}&order=client_id.asc",
             headers={"apikey": KEY, "Authorization": f"Bearer {KEY}", "Range-Unit": "items", "Range": f"{start}-{start + PAGE - 1}"})
         with urllib.request.urlopen(req, timeout=60) as r:
             part = json.load(r)
